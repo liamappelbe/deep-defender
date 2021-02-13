@@ -1,2 +1,2 @@
-# deep-defender
-Defends against deep fakes.
+# Deep Defender
+Real-time defense against deep fakes.
