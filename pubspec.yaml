@@ -1,0 +1,22 @@
+name: deep_defender
+description: Real-time defense against deep fakes.
+
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  qr_flutter: ^3.1.0
+  cupertino_icons: ^1.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
