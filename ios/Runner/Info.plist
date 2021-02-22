@@ -41,5 +41,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Microphone required to generate audio fingerprints</string>
 </dict>
 </plist>
