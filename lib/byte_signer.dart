@@ -15,12 +15,13 @@
 import 'dart:typed_data';
 import 'package:crypto_keys/crypto_keys.dart';
 
+// Thin wrapper around crpyto_keys Signer implementing RSA/SHA-256 signing.
 class ByteSigner {
-  static const int kSize = 256 ~/ 8;
+  static const int kSize = 256;
 
   final Signer _signer;
   ByteSigner(PrivateKey key)
-      : _signer = key.createSigner(algorithms.signing.hmac.sha256) {}
+      : _signer = key.createSigner(algorithms.signing.rsa.sha256) {}
 
   int size() { return kSize; }
 

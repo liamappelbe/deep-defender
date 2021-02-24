@@ -12,54 +12,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:crypto_keys/crypto_keys.dart';
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:qr/qr.dart';
 import 'audio_hasher.dart';
 import 'byte_signer.dart';
-import 'code_builder.dart';
 import 'metadata.dart';
 import 'microphone.dart';
+import 'saf_code_builder.dart';
 import 'tf_embedder.dart';
 
-KeyPair generateRsa(Null) {
-  //return KeyPair.generateRsa();
-  return KeyPair.fromJwk({
-  "kty": "oct",
-  "k": "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75" +
-      "aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"
-  });
-}
-
+// Connects a Microphone to a SafCodeBuilder running in a separate Isolate.
 class Defender {
-  final void Function(QrCode, String) _callback;
-  final CodeBuilder _codeBuilder;
-  Microphone _microphone;
+  final void Function(int, QrCode) _setQr;
+  final void Function() _clearQr;
+  final _recv = ReceivePort();
+  Future<Microphone> _microphone;
+  Future<Isolate> _isolate;
+  SendPort _send;
 
-  Defender._(this._callback, this._codeBuilder) {}
+  Defender(this._setQr, this._clearQr) {
+    _recv.listen(_onMessage);
+    _isolate = Isolate.spawn(defenderIsolateEntry, _recv.sendPort);
+    _microphone = Microphone.mic(_updateCode);
+  }
 
-  static Future<PrivateKey> getPrivateKey() async {
-    // TODO: Store the key pair. Build a UI to share the public key.
-    final keyPair = await compute(generateRsa, null);
-    return keyPair.privateKey;
+  void _onMessage(dynamic message) {
+    if (message is SendPort) {
+      _send = message as SendPort;
+    } else {
+      final qrm = message as QrMessage;
+      _setQr(qrm.timeMs, qrm.qr);
+    }
   }
 
   void _updateCode(int timeMs, Float64List audio) {
-    final qr = QrCode.fromUint8List(
-                data: _codeBuilder.generate(timeMs, audio),
-                errorCorrectLevel: QrErrorCorrectLevel.L,
-              )..make();
-    final dt = DateTime.now().millisecondsSinceEpoch - timeMs;
-    final cpu = dt / 1e3 / Microphone.kRefreshTime - 1;
-    final info = "Latency: ${dt}ms\nCPU: ${(100 * cpu).toStringAsFixed(2)}%";
-    _callback(qr, info);
+    _clearQr();
+    if (_send != null) _send.send(AudioMessage(timeMs, audio));
+  }
+}
+
+void defenderIsolateEntry(SendPort port) {
+  DefenderIsolate(port);
+}
+
+class AudioMessage {
+  int timeMs;
+  Float64List audio;
+  AudioMessage(this.timeMs, this.audio);
+}
+
+class QrMessage {
+  int timeMs;
+  QrCode qr;
+  QrMessage(this.timeMs, this.qr);
+}
+
+class DefenderIsolate {
+  final SendPort _send;
+  final _recv = ReceivePort();
+  final SafCodeBuilder _codeBuilder;
+  DefenderIsolate(this._send) : _codeBuilder = SafCodeBuilder(
+      Metadata(), TfEmbedder(), ByteSigner(getPrivateKey())) {
+    _recv.listen(_onMessage);
+    _send.send(_recv.sendPort);
   }
 
-  static Future<Defender> defend(void Function(QrCode, String) callback) async {
-    final defender = Defender._(callback, CodeBuilder(
-      Metadata(), TfEmbedder(), ByteSigner(await getPrivateKey())));
-    defender._microphone = await Microphone.mic(defender._updateCode);
-    return defender;
+  static PrivateKey getPrivateKey() {
+    // TODO: Store the key pair. Build a UI to share the public key.
+    final keyPair = KeyPair.generateRsa();
+    return keyPair.privateKey;
+  }
+
+  void _onMessage(dynamic message) {
+    final am = message as AudioMessage;
+    final qr = QrCode.fromUint8List(
+                data: _codeBuilder.generate(am.timeMs, am.audio),
+                errorCorrectLevel: QrErrorCorrectLevel.L)..make();
+    _send.send(QrMessage(am.timeMs, qr));
   }
 }

@@ -14,6 +14,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'microphone.dart';
 import 'defender.dart';
 
 void main() {
@@ -45,13 +46,23 @@ class DefenderPage extends StatefulWidget {
 class _DefenderState extends State<DefenderPage> {
   QrCode _qr;
   String _text = "Waiting to hear from the microphone...";
-  Future<Defender> _defender;
-  _DefenderState() { _defender = Defender.defend(_updateQr); }
+  Defender _defender;
+  _DefenderState() {
+    _defender = Defender(_setQr, _clearQr);
+  }
 
-  void _updateQr(QrCode qr, String debugInfo) {
+  void _setQr(int timeMs, QrCode qr) {
     setState(() {
       _qr = qr;
-      _text = debugInfo;
+      final dt = DateTime.now().millisecondsSinceEpoch - timeMs;
+      final cpu = dt / 1e3 / Microphone.kRefreshTime - 1;
+      _text = "Latency: ${dt}ms\nCPU: ${(100 * cpu).toStringAsFixed(2)}%";
+    });
+  }
+
+  void _clearQr() {
+    setState(() {
+      _qr = null;
     });
   }
 

@@ -17,12 +17,13 @@ import 'audio_hasher.dart';
 import 'byte_signer.dart';
 import 'metadata.dart';
 
-class CodeBuilder {
+// Combines the audio hash, signature, and metadata into a SAF code.
+class SafCodeBuilder {
   final AudioHasher _hasher;
   final ByteSigner _signer;
   final Metadata _metadata;
   final Uint8List _buf;
-  CodeBuilder(this._metadata, this._hasher, this._signer) :
+  SafCodeBuilder(this._metadata, this._hasher, this._signer) :
       _buf = Uint8List(_metadata.size() + _hasher.size() + _signer.size()) {}
 
   Uint8List generate(int timeMs, Float64List audio) {

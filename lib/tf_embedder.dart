@@ -15,6 +15,7 @@
 import 'dart:typed_data';
 import 'audio_hasher.dart';
 
+// AudioHasher implementation using an embedder network running in TensorFlow.
 class TfEmbedder implements AudioHasher {
   static const int kEmbeddingSize = 32;
   static const int kSize = 3 * kEmbeddingSize;

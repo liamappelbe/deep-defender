@@ -14,15 +14,16 @@
 
 import 'dart:typed_data';
 
+// Generates SAF code metadata.
 class Metadata {
-  static const String kMagicString = "deepdef:";
+  static const String kMagicString = "SAF";
   static const int kVersion = 0;
-  static const int kSize = 8 + 2 + 2 + 8;
+  static const int kSize = kMagicString.length + 2 + 2 + 8;
 
   int size() { return kSize; }
 
   void fill(int timeMs, int algorithmId, Uint8List metadata) {
-    // [magic string (8)] [version (2)] [algorithm (2)] [time (8)]
+    // [magic string ] [version (2)] [algorithm (2)] [time (8)]
     for (var i = 0; i < kMagicString.length; ++i) {
       metadata[i] = kMagicString.codeUnitAt(i);
     }
