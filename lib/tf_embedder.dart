@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import 'dart:typed_data';
+import 'package:tflite/tflite.dart';
 import 'audio_hasher.dart';
 
 // AudioHasher implementation using an embedder network running in TensorFlow.
@@ -20,6 +21,15 @@ class TfEmbedder implements AudioHasher {
   static const int kEmbeddingSize = 32;
   static const int kSize = 3 * kEmbeddingSize;
   static const int kAlgorithmId = 0;
+
+  static Future<TfEmbedder> create() async {
+    return TfEmbedder();
+    //final result = await Tflite.loadModel(
+    //  model: "assets/embedder.tflite",
+    //  isAsset: true,
+    //);
+    //print("MMMMMMMMMMMMMM: $result");
+  }
 
   @override
   int size() { return kSize; }

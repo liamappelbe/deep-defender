@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:crypto_keys/crypto_keys.dart' show PrivateKey;
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'microphone.dart';
 import 'defender.dart';
+import 'microphone.dart';
+import 'key_store.dart';
 
 void main() {
   runApp(DeepDefenderApp());
 }
 
 class DeepDefenderApp extends StatelessWidget {
+  final _keyStore = KeyStore();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -30,25 +34,28 @@ class DeepDefenderApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: DefenderPage(title: 'Deep Defender'),
+      home: DefenderPage(
+          title: 'Deep Defender', privateKey: _keyStore.privateKey()),
     );
   }
 }
 
 class DefenderPage extends StatefulWidget {
   final String title;
-  DefenderPage({Key key, this.title}) : super(key: key);
+  final Future<PrivateKey> privateKey;
+  DefenderPage({Key key, this.title, this.privateKey}) : super(key: key);
 
   @override
-  _DefenderState createState() => _DefenderState();
+  _DefenderState createState() => _DefenderState(privateKey);
 }
 
 class _DefenderState extends State<DefenderPage> {
+  final Future<PrivateKey> _privateKey;
   QrCode _qr;
   String _text = "Waiting to hear from the microphone...";
   Defender _defender;
-  _DefenderState() {
-    _defender = Defender(_setQr, _clearQr);
+  _DefenderState(this._privateKey) {
+    _defender = Defender(_setQr, _clearQr, _privateKey);
   }
 
   void _setQr(int timeMs, QrCode qr) {

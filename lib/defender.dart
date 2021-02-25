@@ -15,7 +15,6 @@
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:crypto_keys/crypto_keys.dart';
-import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr/qr.dart';
 import 'audio_hasher.dart';
@@ -29,12 +28,13 @@ import 'tf_embedder.dart';
 class Defender {
   final void Function(int, QrCode) _setQr;
   final void Function() _clearQr;
+  final Future<PrivateKey> _privateKey;
   final _recv = ReceivePort();
   Future<Microphone> _microphone;
   Future<Isolate> _isolate;
   SendPort _send;
 
-  Defender(this._setQr, this._clearQr) {
+  Defender(this._setQr, this._clearQr, this._privateKey) {
     _recv.listen(_onMessage);
     _isolate = Isolate.spawn(defenderIsolateEntry, _recv.sendPort);
     _microphone = Microphone.mic(_updateCode);
@@ -43,6 +43,7 @@ class Defender {
   void _onMessage(dynamic message) {
     if (message is SendPort) {
       _send = message as SendPort;
+      _privateKey.then((pk) => _send.send(pk));
     } else {
       final qrm = message as QrMessage;
       _setQr(qrm.timeMs, qrm.qr);
@@ -74,24 +75,27 @@ class QrMessage {
 class DefenderIsolate {
   final SendPort _send;
   final _recv = ReceivePort();
-  final SafCodeBuilder _codeBuilder;
-  DefenderIsolate(this._send) : _codeBuilder = SafCodeBuilder(
-      Metadata(), TfEmbedder(), ByteSigner(getPrivateKey())) {
+  SafCodeBuilder _codeBuilder;
+
+  DefenderIsolate(this._send) {
     _recv.listen(_onMessage);
     _send.send(_recv.sendPort);
   }
 
-  static PrivateKey getPrivateKey() {
-    // TODO: Store the key pair. Build a UI to share the public key.
-    final keyPair = KeyPair.generateRsa();
-    return keyPair.privateKey;
+  static Future<SafCodeBuilder> createCodeBuilder(PrivateKey pk) async {
+    return SafCodeBuilder(
+        Metadata(), await TfEmbedder.create(), ByteSigner(pk));
   }
 
   void _onMessage(dynamic message) {
-    final am = message as AudioMessage;
-    final qr = QrCode.fromUint8List(
-                data: _codeBuilder.generate(am.timeMs, am.audio),
-                errorCorrectLevel: QrErrorCorrectLevel.L)..make();
-    _send.send(QrMessage(am.timeMs, qr));
+    if (message is PrivateKey) {
+      createCodeBuilder(message as PrivateKey).then((cb) => _codeBuilder = cb);
+    } else if (_codeBuilder != null) {
+      final am = message as AudioMessage;
+      final qr = QrCode.fromUint8List(
+                  data: _codeBuilder.generate(am.timeMs, am.audio),
+                  errorCorrectLevel: QrErrorCorrectLevel.L)..make();
+      _send.send(QrMessage(am.timeMs, qr));
+    }
   }
 }

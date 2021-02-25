@@ -15,6 +15,7 @@ dependencies:
   fft: ^0.3.0
   mic_stream: ^0.4.0
   permission_handler: ^5.1.0+2
+  tflite: ^1.1.1
   qr_flutter: ^3.1.0
   cupertino_icons: ^1.0.0
 
