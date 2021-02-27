@@ -13,33 +13,29 @@
 // limitations under the License.
 
 import 'dart:typed_data';
-import 'package:tflite/tflite.dart';
-import 'audio_hasher.dart';
+import 'package:flutter/services.dart';
 
-// AudioHasher implementation using an embedder network running in TensorFlow.
-class TfEmbedder implements AudioHasher {
+// Audio fingerprinting using an embedder network running in TensorFlow.
+class TfEmbedder {
   static const int kEmbeddingSize = 32;
   static const int kSize = 3 * kEmbeddingSize;
-  static const int kAlgorithmId = 0;
+  static const _channel =
+      const MethodChannel('com.github.liamappelbe.deep_defender/embedder');
 
-  static Future<TfEmbedder> create() async {
-    return TfEmbedder();
-    //final result = await Tflite.loadModel(
-    //  model: "assets/embedder.tflite",
-    //  isAsset: true,
-    //);
-    //print("MMMMMMMMMMMMMM: $result");
-  }
-
-  @override
   int size() { return kSize; }
 
-  @override
-  int algorithmId() { return kAlgorithmId; }
+  int quantizeToUint24(double x) {
+    const int kMax = 0x1000000;
+    int y = (x * kMax.toDouble()).toInt();
+    return y < 0 ? 0 : y >= kMax ? kMax - 1 : y;
+  }
 
-  @override
-  void fill(Float64List audio, Uint8List hash) {
-    // TODO: Implement using tensorflow.
-    hash.buffer.asFloat64List().setRange(0, kSize ~/ 8, audio);
+  Future<Uint8List> run(Uint8List input) async {
+    final fingerprint = Uint8List(kSize);
+    final Uint8List raw = await _channel.invokeMethod('runEmbedder', input);
+    final o = raw.buffer.asFloat32List();
+    assert(o.length == kEmbeddingSize);
+    for (var i = 0; i < o.length; ++i) fingerprint[i] = quantizeToUint24(o[i]);
+    return fingerprint;
   }
 }

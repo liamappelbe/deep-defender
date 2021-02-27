@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Cleans a wav file by removing the silence, cutting out a random segment of
+# what remains, and normalizing its volume. Saves the resulting wav as
+# "${input}.clean.wav". If there wasn't enough audio left after the silence was
+# removed to fill the segment, the result is saved as "${input}.weird.wav".
+
+# Usage:
+# python clean.py input.wav
+
 import math
 import numpy
 import random

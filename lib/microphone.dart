@@ -18,16 +18,17 @@ import 'package:mic_stream/mic_stream.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // Calls the given callback every time a chunk of data is available from the
-// microphone. The Float64List is overwritten each time, so don't rely on its
+// microphone. The Float32List is overwritten each time, so don't rely on its
 // values staying the same. If you need the data to persist, make a copy of it.
 class Microphone {
   static const int kSampleRate = 4096;
-  static const int kChunkSize = 1 * kSampleRate;
+  static const int kChunkLengthMs = 1000;
+  static const int kChunkSize = kChunkLengthMs * kSampleRate ~/ 1000;
   static const int kOverlapSize = kSampleRate ~/ 8;
   static const double kRefreshTime = (kChunkSize - kOverlapSize) / kSampleRate;
 
   static Future<Microphone> mic(
-      void Function(int, Float64List) callback) async {
+      void Function(int, Float32List) callback) async {
     if (!(await Permission.microphone.request()).isGranted) {
       return null;
     }
@@ -44,11 +45,11 @@ class Microphone {
 
   final Stream<Uint8List> _stream;
   StreamSubscription<Uint8List> _listener;
-  final void Function(int, Float64List) _callback;
-  final Float64List _chunk;
+  final void Function(int, Float32List) _callback;
+  final Float32List _chunk;
   int _index = 0;
   Microphone._(this._stream, this._callback)
-      : _chunk = Float64List(kChunkSize) {
+      : _chunk = Float32List(kChunkSize) {
     _listener = _stream.listen(_onData);
   }
 
@@ -59,9 +60,7 @@ class Microphone {
       ++_index;
       if (_index == kChunkSize) {
         _index = kOverlapSize;
-        int timeMs = DateTime.now().millisecondsSinceEpoch;
-        timeMs -= (kRefreshTime * 1e3).toInt();
-        _callback(timeMs, _chunk);
+        _callback(DateTime.now().millisecondsSinceEpoch, _chunk);
         _chunk.setRange(0, kOverlapSize, _chunk, kChunkSize - kOverlapSize);
       }
     }

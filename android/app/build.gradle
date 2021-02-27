@@ -51,6 +51,11 @@ android {
         noCompress 'tflite'
         noCompress 'lite'
     }
+
+    dependencies {
+        compile 'org.tensorflow:tensorflow-lite:+'
+        compile 'org.tensorflow:tensorflow-lite-gpu:+'
+    }
 }
 
 flutter {

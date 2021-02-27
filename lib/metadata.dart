@@ -13,26 +13,28 @@
 // limitations under the License.
 
 import 'dart:typed_data';
+import 'microphone.dart';
 
 // Generates SAF code metadata.
 class Metadata {
   static const String kMagicString = "SAF";
   static const int kVersion = 0;
+  static const int kAlgorithmId = 0;
   static const int kSize = kMagicString.length + 2 + 2 + 8;
 
   int size() { return kSize; }
 
-  void fill(int timeMs, int algorithmId, Uint8List metadata) {
-    // [magic string ] [version (2)] [algorithm (2)] [time (8)]
+  void fill(int timeMs, Uint8List metadata) {
+    // [magic string] [version (2)] [algorithm (2)] [time (8)]
     for (var i = 0; i < kMagicString.length; ++i) {
       metadata[i] = kMagicString.codeUnitAt(i);
     }
 
     final verData = Uint8List.sublistView(metadata, 8).buffer.asUint16List();
     verData[0] = kVersion;
-    verData[1] = algorithmId;
+    verData[1] = kAlgorithmId;
 
     final timeData = Uint8List.sublistView(metadata, 12).buffer.asUint64List();
-    timeData[0] = timeMs;
+    timeData[0] = timeMs - Microphone.kChunkLengthMs;
   }
 }

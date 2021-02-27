@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Trains the embedder and saves the model as a folder and a tflite file. Output
+# name is "model-${accuracy}".
+
+# Usage:
+# python train.py
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -65,13 +71,17 @@ kUseOutputLayers = False
 kNumConvLayers = 1
 
 kLayerKernelSizes = [64, 32, 16]
-kConvLayerSizes = [16, 64, 128]
+kConvLayerSizes = [16, 16, 128]
+kMaxPoolSizes = [2, 2, 2]
 kInputLayerSize = [kWindowSamples, 1]
 kResizeSpectrogram = False
+kResizeUsingAveragePooling = True
+kResizeUsingAveragePoolingWithConvLayer = True
 kResizedSpectrogramSize = 16
+kResizeAveragePoolingSize = 4
 
 if kUseSpectrograms:
-  kLayerKernelSizes = [8, 4, 2]
+  kLayerKernelSizes = [3, 3, 3]
   kInputLayerSize = [63, 65, 1]
   kResizeSpectrogram = True
 
@@ -94,14 +104,6 @@ def loadWav(filename):
   w = tf.squeeze(w, axis=-1)
   if kInputSampleRate != kTrainingSampleRate:
     w = tfio.audio.resample(w, kInputSampleRate, kTrainingSampleRate)
-  # size = w.shape[0]
-  # print(w.shape, size)
-  # if size < kWavSamples:
-  #   w = tf.pad(w, [[0, kWavSamples - size]])
-  # else:
-  #   start = np.random.randrange(0, size - kWavSamples)
-  #   end = start + kWavSamples
-  #   w = w[start:end]
   return w
 
 def pseudoShuffle(size):
@@ -197,16 +199,27 @@ def createDataset(filenames, name):
 def buildModel():
   layers = []
   if kResizeSpectrogram:
-    layers.append(kr.layers.experimental.preprocessing.Resizing(
-        kResizedSpectrogramSize, kResizedSpectrogramSize))
+    if kResizeUsingAveragePooling:
+      if kResizeUsingAveragePoolingWithConvLayer:
+        layers.append(kr.layers.Conv2D(
+            1, 1 + kResizeAveragePoolingSize, activation="relu"))
+      layers.append(kr.layers.AveragePooling2D(
+          pool_size=kResizeAveragePoolingSize))
+    else:
+      layers.append(kr.layers.experimental.preprocessing.Resizing(
+          kResizedSpectrogramSize, kResizedSpectrogramSize))
   for i in range(kTotalLayers):
     if i < kNumConvLayers:
-      layers.append(kr.layers.Conv1D(
-          kLayerSizes[i], kLayerKernelSizes[i], activation="relu"))
+      if kUseSpectrograms:
+        layers.append(kr.layers.Conv2D(
+            kLayerSizes[i], kLayerKernelSizes[i], activation="relu"))
+      else:
+        layers.append(kr.layers.Conv1D(
+            kLayerSizes[i], kLayerKernelSizes[i], activation="relu"))
+      layers.append(kr.layers.MaxPooling2D(pool_size=kMaxPoolSizes[i]))
     else:
       layers.append(kr.layers.Dense(kLayerSizes[i], activation="relu"))
     if kNumConvLayers > 0 and i == kNumConvLayers - 1:
-      layers.append(kr.layers.MaxPooling2D())
       layers.append(kr.layers.Flatten())
     layers.append(kr.layers.Dropout(kDropout))
   layers.append(kr.layers.Dense(kEmbeddingSize, activation="sigmoid"))
@@ -222,29 +235,40 @@ def buildModel():
     out = finalLayer(kr.layers.concatenate(embs))
   else:
     sub = kr.layers.subtract(embs)
-    out = kr.layers.dot([sub, sub], axes=1)
+    clamp = kr.layers.ReLU(max_value=1.0)
+    out = clamp(kr.layers.dot([sub, sub], axes=1))
   return kr.models.Model(inputs=ins, outputs=out)
 
 def cutEmbedderOutOfModel(model):
   noInputLayer = True
-  newModel = tf.keras.Sequential()
+  inputShape = None
+  layers = []
   for layer in model.layers:
-    keep = True
-    if isinstance(layer, tf.keras.layers.InputLayer):
-      # We only want 1 input layer.
-      if noInputLayer:
-        noInputLayer = False
-      else:
-        keep = False
-    elif isinstance(layer, tf.keras.layers.Dropout):
+    if isinstance(layer, kr.layers.Dropout):
       # Skip any dropout layers.
-      keep = False
-    elif isinstance(layer, tf.keras.layers.Subtract):
+      continue
+    elif isinstance(layer, kr.layers.experimental.preprocessing.Resizing):
+      # If there is a resizing layer, assume it's the first
+      # Skip any resizing layers, because they're not supported by tflite. We'll
+      # have to manually resize the inputs on the device. Add an input layer
+      # instead of the resize layer.
+      assert(len(layers) == 1)
+      assert(isinstance(layers[0], kr.layers.InputLayer))
+      layers = [kr.Input(shape=layer.output_shape[1:])]
+      continue
+    elif isinstance(layer, kr.layers.InputLayer):
+      # Skip any input layers. Since we're removing the resizing layer, the
+      # input size is wrong. It's ok though, because sequential models don't
+      # need explicit input layers.
+      assert(len(layers) <= 1)
+      if len(layers) == 0:
+        layers.append(layer)
+      continue
+    elif isinstance(layer, kr.layers.Subtract):
       # Subtraction layer comes right after the embedder, so stop.
       break
-    if keep:
-      newModel.add(layer)
-  return newModel
+    layers.append(layer)
+  return kr.Sequential(layers)
 
 
 ###########
@@ -271,20 +295,21 @@ testDS = createDataset(testFiles, "test")
 model = buildModel()
 model.summary()
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(kLearningRate),
-    loss=tf.keras.losses.BinaryCrossentropy(),
+    optimizer=kr.optimizers.Adam(kLearningRate),
+    loss=kr.losses.BinaryCrossentropy(),
     metrics=["accuracy"])
 history = model.fit(
     trainDS,
     validation_data=valDS,
     epochs=kEpochs,
-    callbacks=tf.keras.callbacks.EarlyStopping(
+    callbacks=kr.callbacks.EarlyStopping(
         verbose=1, patience=10, restore_best_weights=True),
 )
 _, testAccuracy = model.evaluate(testDS)
 print("Accuracy on the test set: %.6f" % testAccuracy)
 
 embedderModel = cutEmbedderOutOfModel(model)
+embedderModel.summary()
 outName = kModelOutPath % testAccuracy
 embedderModel.save(outName)
 

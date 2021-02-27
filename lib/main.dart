@@ -14,6 +14,8 @@
 
 import 'package:crypto_keys/crypto_keys.dart' show PrivateKey;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'defender.dart';
 import 'microphone.dart';
@@ -28,10 +30,11 @@ class DeepDefenderApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return MaterialApp(
       title: 'Deep Defender',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.deepOrange,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: DefenderPage(
@@ -62,7 +65,7 @@ class _DefenderState extends State<DefenderPage> {
     setState(() {
       _qr = qr;
       final dt = DateTime.now().millisecondsSinceEpoch - timeMs;
-      final cpu = dt / 1e3 / Microphone.kRefreshTime - 1;
+      final cpu = dt / 1e3 / Microphone.kRefreshTime;
       _text = "Latency: ${dt}ms\nCPU: ${(100 * cpu).toStringAsFixed(2)}%";
     });
   }
@@ -83,7 +86,8 @@ class _DefenderState extends State<DefenderPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            if (_qr != null) QrImage.withQr(qr: _qr),
+            if (_qr != null) QrImage.withQr(qr: _qr)
+            else AspectRatio(aspectRatio: 1),
             Text(
               _text,
               textAlign: TextAlign.center,
