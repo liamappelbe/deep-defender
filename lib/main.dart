@@ -16,6 +16,7 @@ import 'package:crypto_keys/crypto_keys.dart' show PrivateKey;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:share/share.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'defender.dart';
 import 'microphone.dart';
@@ -26,8 +27,6 @@ void main() {
 }
 
 class DeepDefenderApp extends StatelessWidget {
-  final _keyStore = KeyStore();
-
   @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -37,28 +36,27 @@ class DeepDefenderApp extends StatelessWidget {
         primarySwatch: Colors.deepOrange,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: DefenderPage(
-          title: 'Deep Defender', privateKey: _keyStore.privateKey()),
+      home: DefenderPage(title: 'Deep Defender'),
     );
   }
 }
 
 class DefenderPage extends StatefulWidget {
   final String title;
-  final Future<PrivateKey> privateKey;
-  DefenderPage({Key key, this.title, this.privateKey}) : super(key: key);
+  final _keyStore = KeyStore();
+  DefenderPage({Key key, this.title}) : super(key: key);
 
   @override
-  _DefenderState createState() => _DefenderState(privateKey);
+  _DefenderState createState() => _DefenderState(_keyStore);
 }
 
 class _DefenderState extends State<DefenderPage> {
-  final Future<PrivateKey> _privateKey;
+  final KeyStore _keyStore;
+  Defender _defender;
   QrCode _qr;
   String _text = "Waiting to hear from the microphone...";
-  Defender _defender;
-  _DefenderState(this._privateKey) {
-    _defender = Defender(_setQr, _clearQr, _privateKey);
+  _DefenderState(this._keyStore) {
+    _defender = Defender(_setQr, _clearQr, _keyStore.privateKey());
   }
 
   void _setQr(int timeMs, QrCode qr) {
@@ -81,6 +79,18 @@ class _DefenderState extends State<DefenderPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: <Widget>[
+          PopupMenuButton<void Function()>(
+            onSelected: (void Function() value) => value(),
+            itemBuilder: (BuildContext context) =>
+                <PopupMenuEntry<void Function()>>[
+                  PopupMenuItem<void Function()>(
+                    value: _sharePublicKey,
+                    child: Text('Share public key'),
+                  ),
+                ],
+          ),
+        ],
       ),
       body: Center(
         child: Column(
@@ -96,5 +106,9 @@ class _DefenderState extends State<DefenderPage> {
         ),
       ),
     );
+  }
+
+  void _sharePublicKey() {
+    _keyStore.publicKeyAsJwk().then((jwk) => Share.share(jwk));
   }
 }
