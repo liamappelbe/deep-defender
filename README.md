@@ -37,6 +37,7 @@ updates happen like this:
 2. The previous SAF code is cleared.
 3. The new SAF code is calculated, which takes some time.
 4. The new SAF code is displayed.
+
 The timestamp in the SAF code is the one recorded in step 1 (minus 1 second), so
 since the time between step 1 and 2 should be short, the dissapearence time of
 the previous SAF code can be assumed to be the same as the timestamp in the next
@@ -106,6 +107,7 @@ All uints are stored in big-endian mode.
 - Retrieved on 15/02/2021
 - The data set was preprocessed by running embedder/clean.py on every wav file
 - Then the model was trained using embedder/train.py
+
 The embedder's task was to decide if 2 audio chunks were the same based on the
 pythagorean distance between their 2 embeddings. It achieved 99.5% accuracy at
 this task, but more experimentation is needed to determine how this translates
