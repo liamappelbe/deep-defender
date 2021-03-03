@@ -7,6 +7,8 @@ implementation is possible to circumvent, since I hacked it together in a few
 weeks. I would welcome any input from security and ML experts to make the app
 more robust.
 
+This is not an officially supported Google product.
+
 ## How it works
 
 To use the app, just run it on your phone while you're being filmed, and make
