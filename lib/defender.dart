@@ -110,8 +110,10 @@ class DefenderIsolate {
           am.timeMs, _spectrogram.run(am.audio).buffer.asUint8List()));
     } else if (_codeBuilder != null) {
       final fm = message as FingerprintMessage;
+      final data = _codeBuilder.generate(
+          fm.timeMs - Microphone.kChunkLengthMs, fm.fingerprint);
       final qr = QrCode.fromUint8List(
-                  data: _codeBuilder.generate(fm.timeMs, fm.fingerprint),
+                  data: data,
                   errorCorrectLevel: QrErrorCorrectLevel.L)..make();
       _send.send(QrMessage(fm.timeMs, qr));
     }

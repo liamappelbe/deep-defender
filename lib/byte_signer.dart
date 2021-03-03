@@ -25,10 +25,12 @@ class ByteSigner {
 
   int size() { return kSize; }
 
-  void fill(Uint8List data, Uint8List signature) {
-    assert(signature.length == kSize);
-    final s = _signer.sign(data).data;
+  void fill(ByteData data, int signatureStart) {
+    assert(signatureStart + kSize == data.lengthInBytes);
+    final s = _signer.sign(Uint8List.view(data.buffer, 0, signatureStart)).data;
     assert(s.length == kSize);
-    signature.setAll(0, s);
+    for (var i = 0; i < s.length; ++i) {
+      data.setUint8(i + signatureStart, s[i]);
+    }
   }
 }

@@ -13,11 +13,18 @@
 # limitations under the License.
 
 # Trains the embedder and saves the model as a folder and a tflite file. Output
-# name is "model-${accuracy}".
+# name is "model-${datetime}".
 
 # Usage:
 # python train.py
 
+# I ran this in Python 3.8, with these pip packages:
+#    matplotlib
+#    numpy
+#    tensorflow
+#    tensorflow_io
+
+import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -34,7 +41,7 @@ import tensorflow_io as tfio
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 kInputFiles = "common-voice/*/*/*.clean.wav"
-kModelOutPath = "model-%.6f"
+kModelOutPath = "model-%s"
 kInputSampleRate = 16000
 kWindowSize = 1
 kUseSpectrograms = True
@@ -45,7 +52,7 @@ kDropout = 0.25
 kBatchSize = 64
 kShuffleBufferSize = 10000
 kMiniShuffleBufferSize = 100
-kEpochs = 100
+kEpochs = 10000
 kNumDatasetCopies = 1
 kMaxTrainingFiles = float('inf')  # 10000
 
@@ -54,25 +61,26 @@ kMismatchOutput = 1
 
 kMinVolume = 0.3
 kMaxNoise = 0.1
-kMaxDesync = 0.01
+kMaxDesync = 0.1
+kMinEditSize = 0.1
+kMaxEditSize = 0.5
 # TODO: Filtering params.
-# TODO: Malicious edit params.
 
 kWindowSamples = int(kWindowSize * kTrainingSampleRate)
 kMaxDesyncSamples = int(kMaxDesync * kTrainingSampleRate)
-kWavSamples = int(kWindowSamples + kMaxDesyncSamples)
-kInputWavSamples = int(kWavSamples * kInputSampleRate / kTrainingSampleRate)
+kMinEditSamples = int(kMinEditSize * kTrainingSampleRate)
+kMaxEditSamples = int(kMaxEditSize * kTrainingSampleRate)
 
-kTotalLayers = 1
-kLayerSizes = [1000, 300, 100]
-kEmbeddingSize = 32
+kTotalLayers = 4
+kLayerSizes = [1000, 300, 100, 100]
+kEmbeddingSize = 96
 
 kUseOutputLayers = False
-kNumConvLayers = 1
+kNumConvLayers = 4
 
-kLayerKernelSizes = [64, 32, 16]
-kConvLayerSizes = [16, 16, 128]
-kMaxPoolSizes = [2, 2, 2]
+kLayerKernelSizes = [64, 32, 16, 8]
+kConvLayerSizes = [48, 32, 24, 16]
+kMaxPoolSizes = [2, 2, 2, 2]
 kInputLayerSize = [kWindowSamples, 1]
 kResizeSpectrogram = False
 kResizeUsingAveragePooling = True
@@ -81,11 +89,11 @@ kResizedSpectrogramSize = 16
 kResizeAveragePoolingSize = 4
 
 if kUseSpectrograms:
-  kLayerKernelSizes = [3, 3, 3]
+  kLayerKernelSizes = [3, 3, 3, 3]
   kInputLayerSize = [63, 65, 1]
-  kResizeSpectrogram = True
+  kResizeSpectrogram = False
 
-seed = 47
+seed = 86
 tf.random.set_seed(seed)
 np.random.seed(seed)
 
@@ -100,7 +108,7 @@ for i in range(kNumConvLayers):
 #############
 
 def loadWav(filename):
-  w, _ = tf.audio.decode_wav(tf.io.read_file(filename), 1, kInputWavSamples)
+  w, _ = tf.audio.decode_wav(tf.io.read_file(filename), 1)
   w = tf.squeeze(w, axis=-1)
   if kInputSampleRate != kTrainingSampleRate:
     w = tfio.audio.resample(w, kInputSampleRate, kTrainingSampleRate)
@@ -146,23 +154,54 @@ def getShape(ds):
 ### DATASET ###
 ###############
 
-def tweak(w, volume, noise, desync):
+def tweak(w, volume, noise, window, desync):
+  size = tf.shape(w)[0]
+  start = window * float(size - kMaxDesyncSamples - kWindowSamples) + desync
+  ww = tf.slice(w, [int(start)], [kWindowSamples], name="windowed")
   n = tf.random.uniform(
       shape=[kWindowSamples], minval=-noise, maxval=noise, name="noise")
-  ww = tf.slice(w, [int(desync)], [kWindowSamples], name="windowed")
   wn = tf.math.add(ww, n, name="withNoise")
-  wt = tf.math.scalar_mul(volume, wn, name="withVolume")
-  if kUseSpectrograms:
-    return tf.abs(tf.signal.stft(wt, frame_length=128, frame_step=64))
-  else:
-    return wt
+  return tf.math.scalar_mul(volume, wn, name="withVolume")
 
-def tweakDS(wavDS, size, windowDS = None):
+def spectrogram(w):
+  return tf.abs(tf.signal.stft(w, frame_length=128, frame_step=64))
+
+def maliciousEdit(w, size, pos1, pos2):
+  # Swap the audio chunks at pos1 and pos2. Start by converting pos1 and pos2
+  # into non-overlapping regions of size samples in w, with pos1 < pos2.
+  index1 = int(pos1 * (kWindowSamples - 2 * size))
+  index2 = int(pos2 * (kWindowSamples - 2 * size))
+  n = int(size)
+  if pos1 >= pos2:
+    temp = index1
+    index1 = index2
+    index2 = index1
+  index2 += n
+  return tf.concat([
+    tf.slice(w, [0], [index1], "editA"),
+    tf.slice(w, [index2], [n], "editB"),
+    tf.slice(w, [index1 + n], [index2 - (index1 + n)], "editC"),
+    tf.slice(w, [index1], [n], "editD"),
+    tf.slice(w, [index2 + n], [kWindowSamples - (index2 + n)], "editE"),
+  ], 0, "maliciousEdited")
+
+def tweakDS(wavDS, size, windowDS = None, maliciouslyEdit = False):
   volumeDS = randfDS(size, kMinVolume, 1, "tweakVolume")
   noiseDS = randfDS(size, 0, kMaxNoise, "tweakNoise")
+  if windowDS is None:
+    windowDS = randfDS(size, 0, 1, "tweakWindow")
   desyncDS = randfDS(size, 0, kMaxDesyncSamples, "tweakDesync")
-  zipDS = tf.data.Dataset.zip((wavDS, volumeDS, noiseDS, desyncDS))
-  return zipDS.map(tweak, num_parallel_calls=tf.data.AUTOTUNE)
+  zip1DS = tf.data.Dataset.zip((wavDS, volumeDS, noiseDS, windowDS, desyncDS))
+  outDS = zip1DS.map(tweak, num_parallel_calls=tf.data.AUTOTUNE)
+  if maliciouslyEdit:
+    editSizeDS = randfDS(size, kMinEditSamples, kMaxEditSamples, "editSizeDS")
+    editPos1DS = randfDS(size, 0, 1, "editPos1DS")
+    editPos2DS = randfDS(size, 0, 1, "editPos2DS")
+    zip2DS = tf.data.Dataset.zip((outDS, editSizeDS, editPos1DS, editPos2DS))
+    outDS = zip2DS.map(maliciousEdit, num_parallel_calls=tf.data.AUTOTUNE)
+  if kUseSpectrograms:
+    outDS = outDS.map(spectrogram, num_parallel_calls=tf.data.AUTOTUNE)
+  return outDS, windowDS
 
 def createDataset(filenames, name):
   size = len(filenames)
@@ -172,19 +211,35 @@ def createDataset(filenames, name):
 
   datasets = []
   for i in range(kNumDatasetCopies):
+    # Matching data set
+    matchLeft, matchWindow = tweakDS(wavDS, size)
+    matchRight = tweakDS(wavDS, size, matchWindow)[0]
     datasets.append(tf.data.Dataset.zip((tf.data.Dataset.zip((
-        tweakDS(wavDS, size), tweakDS(wavDS, size))),
+        matchLeft, matchRight)),
             constDS(size, kMatchOutput, "matchOutput" + str(i)))))
 
-    mismatchLeftDS = tweakDS(wavDS, size)
+    # Mismatched data set
+    mismatchLeftDS = tweakDS(wavDS, size)[0]
     # mismatchRightDS = tf.data.experimental.choose_from_datasets(
     #     tweakDS(wavDS, size), pseudoShuffle(size))
-    mismatchRightDS = tweakDS(wavDS, size).shuffle(kShuffleBufferSize)
+    mismatchRightDS = tweakDS(wavDS, size)[0].shuffle(kShuffleBufferSize)
     datasets.append(tf.data.Dataset.zip((tf.data.Dataset.zip((
         mismatchLeftDS, mismatchRightDS)),
             constDS(size, kMismatchOutput, "mismatchOutput" + str(i)))))
 
-    # TODO: Malicious edit dataset
+    # Another matching data set, to keep match & mismatch balanced.
+    matchLeft2, matchWindow2 = tweakDS(wavDS, size)
+    matchRight2 = tweakDS(wavDS, size, matchWindow2)[0]
+    datasets.append(tf.data.Dataset.zip((tf.data.Dataset.zip((
+        matchLeft2, matchRight2)),
+            constDS(size, kMatchOutput, "matchOutput" + str(i) + "b"))))
+
+    # Malicious edit dataset
+    maliciousLeft, maliciousWindow = tweakDS(wavDS, size)
+    maliciousRight = tweakDS(wavDS, size, maliciousWindow, True)[0]
+    datasets.append(tf.data.Dataset.zip((tf.data.Dataset.zip((
+        maliciousLeft, maliciousRight)),
+            constDS(size, kMismatchOutput, "maliciousOutput" + str(i)))))
 
   ds = concatDS(datasets).batch(kBatchSize)
   ds = ds.cache(kCache + "-" + name).prefetch(tf.data.AUTOTUNE)
@@ -303,14 +358,14 @@ history = model.fit(
     validation_data=valDS,
     epochs=kEpochs,
     callbacks=kr.callbacks.EarlyStopping(
-        verbose=1, patience=10, restore_best_weights=True),
+        verbose=1, patience=100, restore_best_weights=True),
 )
 _, testAccuracy = model.evaluate(testDS)
 print("Accuracy on the test set: %.6f" % testAccuracy)
 
 embedderModel = cutEmbedderOutOfModel(model)
 embedderModel.summary()
-outName = kModelOutPath % testAccuracy
+outName = kModelOutPath % datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 embedderModel.save(outName)
 
 tfliteModel = tf.lite.TFLiteConverter.from_saved_model(outName).convert()

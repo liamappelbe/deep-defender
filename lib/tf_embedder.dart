@@ -22,20 +22,27 @@ class TfEmbedder {
   static const _channel =
       const MethodChannel('com.github.liamappelbe.deep_defender/embedder');
 
+  final _temp = ByteData(4);
+
   int size() { return kSize; }
 
-  int quantizeToUint24(double x) {
+  void fillQuantizedUint24(ByteData b, int i, double x) {
     const int kMax = 0x1000000;
-    int y = (x * kMax.toDouble()).toInt();
-    return y < 0 ? 0 : y >= kMax ? kMax - 1 : y;
+    final y = (x * kMax.toDouble()).toInt();
+    _temp.setUint32(0, y < 0 ? 0 : y >= kMax ? kMax - 1 : y, Endian.big);
+    assert(_temp.getUint8(0) == 0);
+    for (var j = 0; j < 3; ++j) {
+      b.setUint8(3 * i + j, _temp.getUint8(j + 1));
+    }
   }
 
   Future<Uint8List> run(Uint8List input) async {
     final fingerprint = Uint8List(kSize);
+    final bytes = fingerprint.buffer.asByteData();
     final Uint8List raw = await _channel.invokeMethod('runEmbedder', input);
     final o = raw.buffer.asFloat32List();
     assert(o.length == kEmbeddingSize);
-    for (var i = 0; i < o.length; ++i) fingerprint[i] = quantizeToUint24(o[i]);
+    for (var i = 0; i < o.length; ++i) fillQuantizedUint24(bytes, i, o[i]);
     return fingerprint;
   }
 }

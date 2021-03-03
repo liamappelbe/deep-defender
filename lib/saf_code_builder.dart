@@ -21,6 +21,7 @@ class SafCodeBuilder {
   final ByteSigner _signer;
   final Metadata _metadata;
   Uint8List _buf;
+  ByteData _bytes;
   SafCodeBuilder(this._metadata, this._signer) {}
 
   Uint8List generate(int timeMs, Uint8List fingerprint) {
@@ -28,13 +29,14 @@ class SafCodeBuilder {
     // [        signable data       ] [signature]
     if (_buf == null) {
       _buf = Uint8List(_metadata.size() + fingerprint.length + _signer.size());
+      _bytes = _buf.buffer.asByteData();
     }
-    _metadata.fill(timeMs, _buf);
-    _buf.setAll(_metadata.size(), fingerprint);
+    _metadata.fill(timeMs, _bytes);
+    for (var i = 0; i < fingerprint.length; ++i) {
+      _bytes.setUint8(i + _metadata.size(), fingerprint[i]);
+    }
     final dataSize = _metadata.size() + fingerprint.length;
-    _signer.fill(
-        Uint8List.sublistView(_buf, 0, dataSize),
-        Uint8List.sublistView(_buf, dataSize));
+    _signer.fill(_bytes, dataSize);
     return _buf;
   }
 }

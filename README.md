@@ -99,6 +99,8 @@ quantized to 24-bit uints, yielding a 96 byte audio fingerprint. The timestamp
 is ms since epoch, and marks the start of the 1 second chunk of audio that was
 fingerprinted.
 
+All uints are stored in big-endian mode.
+
 ## ML notes
 - Data set: https://www.kaggle.com/mozillaorg/common-voice
 - Retrieved on 15/02/2021

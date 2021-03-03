@@ -24,17 +24,14 @@ class Metadata {
 
   int size() { return kSize; }
 
-  void fill(int timeMs, Uint8List metadata) {
+  void fill(int timeMs, ByteData metadata) {
     // [magic string] [version (2)] [algorithm (2)] [time (8)]
     for (var i = 0; i < kMagicString.length; ++i) {
-      metadata[i] = kMagicString.codeUnitAt(i);
+      metadata.setUint8(i, kMagicString.codeUnitAt(i));
     }
 
-    final verData = Uint8List.sublistView(metadata, 8).buffer.asUint16List();
-    verData[0] = kVersion;
-    verData[1] = kAlgorithmId;
-
-    final timeData = Uint8List.sublistView(metadata, 12).buffer.asUint64List();
-    timeData[0] = timeMs - Microphone.kChunkLengthMs;
+    metadata.setUint16(kMagicString.length, kVersion, Endian.big);
+    metadata.setUint16(kMagicString.length + 2, kAlgorithmId, Endian.big);
+    metadata.setUint64(kMagicString.length + 4, timeMs, Endian.big);
   }
 }

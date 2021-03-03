@@ -18,9 +18,7 @@ import 'package:flutter/foundation.dart';
 import 'package:pointycastle/src/utils.dart' show encodeBigInt, decodeBigInt;
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<KeyPair> _generateKeyPair(Null) async {
-  return KeyPair.generateRsa();
-}
+KeyPair _generateKeyPair(Null) { return KeyPair.generateRsa(); }
 
 class KeyStore {
   final Future<KeyPair> _keyPair;
@@ -28,20 +26,20 @@ class KeyStore {
 
   Future<PrivateKey> privateKey() { return _keyPair.then((k) => k.privateKey); }
   Future<PublicKey> publicKey() { return _keyPair.then((k) => k.publicKey); }
-  Future<String> publicKeyAsJwk() { return publicKey().then(_toJwk); }
+  Future<String> publicKeyAsJwk() { return publicKey().then(toJwk); }
 
   static Future<KeyPair> _getKeyPair() async {
     const kName = "key_pair";
     final sp = await SharedPreferences.getInstance();
-    if (sp.containsKey(kName)) return _fromJwk(sp.getString(kName));
+    if (sp.containsKey(kName)) return fromJwk(sp.getString(kName));
     final kp = await compute(_generateKeyPair, null);
-    sp.setString(kName, _toJwk(kp.publicKey, kp.privateKey));
+    sp.setString(kName, toJwk(kp.publicKey, kp.privateKey));
     return kp;
   }
 
   static String _base64UrlUint(BigInt x) => base64UrlEncode(encodeBigInt(x));
 
-  static String _toJwk(PublicKey pub, [PrivateKey priv = null]) {
+  static String toJwk(PublicKey pub, [PrivateKey priv = null]) {
     // See https://tools.ietf.org/html/rfc7517 and rfc7518.
     final rsaPub = pub as RsaPublicKey;
     final n = _base64UrlUint(rsaPub.modulus);
@@ -58,7 +56,7 @@ class KeyStore {
     return '{"kty":"RSA","alg":"RS256","use":"sig","n":"$n","e":"$e"$pk}';
   }
 
-  static KeyPair _fromJwk(String jwk) {
+  static KeyPair fromJwk(String jwk) {
     return KeyPair.fromJwk(jsonDecode(jwk) as Map<String, dynamic>);
   }
 }

@@ -18,6 +18,10 @@
 # Usage:
 # python testData.py savedModelFolder
 
+# I ran this in Python 3.8, with these pip packages:
+#    tensorflow
+#    tensorflow_io
+
 import sys
 import tensorflow as tf
 import tensorflow.keras as kr

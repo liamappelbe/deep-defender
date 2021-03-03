@@ -20,6 +20,9 @@
 # Usage:
 # python clean.py input.wav
 
+# I ran this in Python 3.8, with these pip packages:
+#    numpy
+
 import math
 import numpy
 import random
@@ -34,11 +37,8 @@ kTargetRmsVolume = 0.1
 kSilenceWindow = 0.1
 kSilenceThreshold = 0.01
 
-kWindowSize = 1
-kMaxDesync = 0.01
-kWindowSamples = kWindowSize * kSampleRate
-kMaxDesyncSamples = kMaxDesync * kSampleRate
-kWavSamples = kWindowSamples + kMaxDesyncSamples
+kMinLength = 2
+kMinSamples = kMinLength * kSampleRate
 
 def toI16(x):
   return int(min(max(x * 32768, -32768), 32767))
@@ -95,12 +95,6 @@ def trimSilence(a, w, t):
       b.append(a[i])
   return b
 
-def sliceRandomWindow(a, n):
-  if len(a) < n:
-    return a
-  i = random.randrange(len(a) - n)
-  return a[int(i) : int(i + n)]
-
 inFile = sys.argv[1]
 okOutFile = inFile + ".clean.wav"
 badOutFile = inFile + ".weird.wav"
@@ -112,8 +106,7 @@ assert(len(a) > 100)
 ok = True
 oldLen = len(a)
 a = trimSilence(a, int(kSilenceWindow * kSampleRate), kSilenceThreshold)
-a = sliceRandomWindow(a, kWavSamples)
-if len(a) != kWavSamples:
+if len(a) < kMinSamples:
   ok = False
 else:
   a = rmsNormalize(a, kTargetRmsVolume)
