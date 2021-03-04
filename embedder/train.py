@@ -52,7 +52,7 @@ kDropout = 0.25
 kBatchSize = 64
 kShuffleBufferSize = 10000
 kMiniShuffleBufferSize = 100
-kEpochs = 10000
+kEpochs = 1000
 kNumDatasetCopies = 1
 kMaxTrainingFiles = float('inf')  # 10000
 
@@ -358,7 +358,7 @@ history = model.fit(
     validation_data=valDS,
     epochs=kEpochs,
     callbacks=kr.callbacks.EarlyStopping(
-        verbose=1, patience=100, restore_best_weights=True),
+        verbose=1, patience=10, restore_best_weights=True),
 )
 _, testAccuracy = model.evaluate(testDS)
 print("Accuracy on the test set: %.6f" % testAccuracy)
