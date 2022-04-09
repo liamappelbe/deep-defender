@@ -39,3 +39,6 @@ app.*.symbols
 
 # Obfuscation related
 app.*.map.json
+
+# This is the no ML branch. If this becomes main, just delete the embedder.
+/embedder/

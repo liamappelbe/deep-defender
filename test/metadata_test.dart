@@ -17,7 +17,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:deep_defender/metadata.dart';
 
-int main() {
+main() {
   test('Metadata filler matches spec', () {
     final m = Metadata();
     final buf = Uint8List(m.size());

@@ -24,9 +24,9 @@ class KeyStore {
   final Future<KeyPair> _keyPair;
   KeyStore() : _keyPair = _getKeyPair();
 
-  Future<PrivateKey> privateKey() { return _keyPair.then((k) => k.privateKey); }
-  Future<PublicKey> publicKey() { return _keyPair.then((k) => k.publicKey); }
-  Future<String> publicKeyAsJwk() { return publicKey().then(toJwk); }
+  Future<PrivateKey> privateKey() => _keyPair.then((k) => k.privateKey);
+  Future<PublicKey> publicKey() => _keyPair.then((k) => k.publicKey);
+  Future<String> publicKeyAsJwk() => publicKey().then(toJwk);
 
   static Future<KeyPair> _getKeyPair() async {
     const kName = "key_pair";

@@ -21,9 +21,9 @@ import 'package:permission_handler/permission_handler.dart';
 // microphone. The Float32List is overwritten each time, so don't rely on its
 // values staying the same. If you need the data to persist, make a copy of it.
 class Microphone {
-  static const int kSampleRate = 4096;
+  static const int kSampleRate = 16000;
   static const int kChunkLengthMs = 1000;
-  static const int kChunkSize = kChunkLengthMs * kSampleRate ~/ 1000;
+  static const int kChunkSize = (kChunkLengthMs * kSampleRate) ~/ 1000;
   static const int kOverlapSize = kSampleRate ~/ 8;
   static const double kRefreshTime = (kChunkSize - kOverlapSize) / kSampleRate;
 

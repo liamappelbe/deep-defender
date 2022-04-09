@@ -24,7 +24,7 @@ void testJwk(RsaPublicKey pub, RsaPrivateKey priv, String expectedJwk) {
   expect(kp.privateKey, equals(priv));
 }
 
-int main() {
+main() {
   test('JWK', () {
     testJwk(RsaPublicKey(
         modulus: BigInt.parse("9283450293849383948573984759872394873945874958"),

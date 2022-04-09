@@ -14,7 +14,6 @@
 
 import 'dart:isolate';
 import 'dart:typed_data';
-import 'package:crypto_keys/crypto_keys.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr/qr.dart';
 import 'byte_signer.dart';

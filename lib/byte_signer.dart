@@ -13,7 +13,6 @@
 // limitations under the License.
 
 import 'dart:typed_data';
-import 'package:crypto_keys/crypto_keys.dart';
 
 // Thin wrapper around crpyto_keys Signer implementing RSA/SHA-256 signing.
 class ByteSigner {
