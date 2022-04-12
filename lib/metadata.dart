@@ -14,12 +14,10 @@
 
 import 'dart:typed_data';
 import 'microphone.dart';
+import 'const.dart';
 
 // Generates SAF code metadata.
 class Metadata {
-  static const String kMagicString = "SAF";
-  static const int kVersion = 0;
-  static const int kAlgorithmId = 0;
   static const int kSize = kMagicString.length + 2 + 2 + 8;
 
   int size() { return kSize; }

@@ -20,8 +20,6 @@ import 'byte_signer.dart';
 import 'metadata.dart';
 import 'microphone.dart';
 import 'saf_code_builder.dart';
-import 'spectrogram.dart';
-import 'tf_embedder.dart';
 
 // Connects a Microphone to a SafCodeBuilder running in a separate Isolate.
 class Defender {
@@ -29,10 +27,9 @@ class Defender {
   final void Function() _clearQr;
   final Future<PrivateKey> _privateKey;
   final _recv = ReceivePort();
-  final _model = TfEmbedder();
-  Future<Microphone> _microphone;
-  Future<Isolate> _isolate;
-  SendPort _send;
+  late final Future<Microphone> _microphone;
+  late final Future<Isolate> _isolate;
+  SendPort? _send;
 
   Defender(this._setQr, this._clearQr, this._privateKey) {
     _recv.listen(_onMessage);
@@ -44,19 +41,15 @@ class Defender {
     if (message is SendPort) {
       _send = message as SendPort;
       _privateKey.then((pk) => _send.send(pk));
-    } else if (message is ModelInputMessage) {
-      final mim = message as ModelInputMessage;
-      _model.run(mim.input).then(
-          (f) => _send.send(FingerprintMessage(mim.timeMs, f)));
     } else {
       final qrm = message as QrMessage;
       _setQr(qrm.timeMs, qrm.qr);
     }
   }
 
-  void _updateCode(int timeMs, Float32List audio) {
+  void _updateCode(int timeMs, Uint16List audio) {
     _clearQr();
-    if (_send != null) _send.send(AudioMessage(timeMs, audio));
+    _send?.send(AudioMessage(timeMs, audio));
   }
 }
 
@@ -66,7 +59,7 @@ void defenderIsolateMain(SendPort port) {
 
 class AudioMessage {
   int timeMs;
-  Float32List audio;
+  Uint16List audio;
   AudioMessage(this.timeMs, this.audio);
 }
 
@@ -76,23 +69,11 @@ class QrMessage {
   QrMessage(this.timeMs, this.qr);
 }
 
-class ModelInputMessage {
-  int timeMs;
-  Uint8List input;
-  ModelInputMessage(this.timeMs, this.input);
-}
-
-class FingerprintMessage {
-  int timeMs;
-  Uint8List fingerprint;
-  FingerprintMessage(this.timeMs, this.fingerprint);
-}
-
 class DefenderIsolate {
   final SendPort _send;
   final _recv = ReceivePort();
   final _spectrogram = Spectrogram();
-  SafCodeBuilder _codeBuilder;
+  SafCodeBuilder? _codeBuilder;
 
   DefenderIsolate(this._send) {
     _recv.listen(_onMessage);
@@ -103,18 +84,13 @@ class DefenderIsolate {
     if (message is PrivateKey) {
       _codeBuilder =
           SafCodeBuilder(Metadata(), ByteSigner(message as PrivateKey));
-    } else if (message is AudioMessage) {
-      final am = message as AudioMessage;
-      _send.send(ModelInputMessage(
-          am.timeMs, _spectrogram.run(am.audio).buffer.asUint8List()));
     } else if (_codeBuilder != null) {
-      final fm = message as FingerprintMessage;
-      final data = _codeBuilder.generate(
-          fm.timeMs - Microphone.kChunkLengthMs, fm.fingerprint);
+      final am = message as AudioMessage;
+      final data = _codeBuilder!.generate(am.timeMs, am.fingerprint);
       final qr = QrCode.fromUint8List(
                   data: data,
                   errorCorrectLevel: QrErrorCorrectLevel.L)..make();
-      _send.send(QrMessage(fm.timeMs, qr));
+      _send.send(QrMessage(am.timeMs, qr));
     }
   }
 }

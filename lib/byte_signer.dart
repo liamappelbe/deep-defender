@@ -1,4 +1,4 @@
-// Copyright 2021 The Deep Defender Authors
+// Copyright 2022 The Deep Defender Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import 'dart:typed_data';
+import 'package:crypto_keys/crypto_keys.dart';
 
 // Thin wrapper around crpyto_keys Signer implementing RSA/SHA-256 signing.
 class ByteSigner {

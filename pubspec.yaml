@@ -20,7 +20,7 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: ">=2.7.0 <3.0.0"
+  sdk: ">=2.14.0 <3.0.0"
 
 dependencies:
   flutter:
@@ -35,6 +35,8 @@ dependencies:
   test: ^1.19.5
   qr_flutter: ^4.0.0
   cupertino_icons: ^1.0.4
+  fftea:
+    path: ../fftea
 
 dev_dependencies:
   flutter_test:
@@ -42,8 +44,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/
 
 flutter_icons:
   android: "launcher_icon"
