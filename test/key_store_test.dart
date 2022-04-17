@@ -16,7 +16,7 @@ import 'package:test/test.dart';
 import 'package:crypto_keys/crypto_keys.dart';
 import 'package:deep_defender/key_store.dart';
 
-void testJwk(RsaPublicKey pub, RsaPrivateKey priv, String expectedJwk) {
+void testJwk(RsaPublicKey pub, RsaPrivateKey? priv, String expectedJwk) {
   final jwk = KeyStore.toJwk(pub, priv);
   expect(jwk, equals(expectedJwk));
   final kp = KeyStore.fromJwk(jwk);

@@ -20,26 +20,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 KeyPair _generateKeyPair(Null) { return KeyPair.generateRsa(); }
 
+/// Provides an RSA public/private key pair.
+///
+/// If there's a key pair available in SharedPreferences it uses that. Otherwise
+/// it generates a new key pair and stores it.
 class KeyStore {
   final Future<KeyPair> _keyPair;
   KeyStore() : _keyPair = _getKeyPair();
 
-  Future<PrivateKey> privateKey() => _keyPair.then((k) => k.privateKey);
-  Future<PublicKey> publicKey() => _keyPair.then((k) => k.publicKey);
+  Future<PrivateKey> privateKey() => _keyPair.then((k) => k.privateKey!);
+  Future<PublicKey> publicKey() => _keyPair.then((k) => k.publicKey!);
   Future<String> publicKeyAsJwk() => publicKey().then(toJwk);
 
   static Future<KeyPair> _getKeyPair() async {
     const kName = "key_pair";
     final sp = await SharedPreferences.getInstance();
-    if (sp.containsKey(kName)) return fromJwk(sp.getString(kName));
+    final storedKey = sp.getString(kName);
+    if (storedKey != null) return fromJwk(storedKey);
     final kp = await compute(_generateKeyPair, null);
-    sp.setString(kName, toJwk(kp.publicKey, kp.privateKey));
+    sp.setString(kName, toJwk(kp.publicKey!, kp.privateKey!));
     return kp;
   }
 
   static String _base64UrlUint(BigInt x) => base64UrlEncode(encodeBigInt(x));
 
-  static String toJwk(PublicKey pub, [PrivateKey priv = null]) {
+  static String toJwk(PublicKey pub, [PrivateKey? priv]) {
     // See https://tools.ietf.org/html/rfc7517 and rfc7518.
     final rsaPub = pub as RsaPublicKey;
     final n = _base64UrlUint(rsaPub.modulus);

@@ -21,7 +21,7 @@ import 'const.dart';
 // Calls the given callback every time a chunk of data is available from the
 // microphone.
 class Microphone {
-  static Future<Microphone> mic(
+  static Future<Microphone?> mic(
       void Function(int, Uint16List) callback) async {
     if (!(await Permission.microphone.request()).isGranted) {
       return null;
@@ -31,8 +31,11 @@ class Microphone {
         sampleRate: kSampleRate,
         channelConfig: ChannelConfig.CHANNEL_IN_MONO,
         audioFormat: AudioFormat.ENCODING_PCM_16BIT);
+    if (stream == null) {
+      return null;
+    }
     // TODO: Handle other sample rates and bit depths by manually resampling.
-    assert((await MicStream.sampleRate).toInt() == kSampleRate);
+    assert((await MicStream.sampleRate)?.toInt() == kSampleRate);
     assert((await MicStream.bitDepth) == 16);
     return Microphone._(stream, callback);
   }
