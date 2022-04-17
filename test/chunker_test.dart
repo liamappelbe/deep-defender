@@ -12,11 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Receives a stream of timestamped audio data, in fixed sized chunks, and
-// yields a list of robust audio hashes for that chunk.
-//
-// As soon as the chunk callback is finished, the hash buffer that was sent will
-// be overwritten, so the callback should copy any data it needs.
+import 'dart:typed_data';
+import 'package:test/test.dart';
+import 'package:deep_defender/chunker.dart';
 
+Uint16List makeList(int from, int to) {
+  final a = <int>[];
+  for (int i = from; i < to; ++i) {
+    a.add(i);
+  }
+  return Uint16List.fromList(a);
+}
 
-// TODO
+main() {
+  test('Chunker', () {
+    // 0ms               30ms                60ms
+    // [0  1  2  3  4  5  6  7]
+    //                   [6  7  8  9  10  11  12  13]
+    //                                       [12  13  ...
+    var times = <int>[];
+    var out = <Uint16List>[];
+    final c = Chunker(200, 8, 6, (int timeMs, Uint16List data) {
+      times.add(timeMs);
+      out.add(Uint16List.fromList(data));
+    });
+
+    c.onData(50, makeList(0, 10));
+    expect(times, [40]);
+    expect(out, [makeList(0, 8)]);
+
+    times = [];
+    out = [];
+    c.onData(60, makeList(10, 12));
+    expect(times, []);
+    expect(out, []);
+
+    times = [];
+    out = [];
+    c.onData(100, makeList(12, 20));
+    expect(times, [70, 100]);
+    expect(out, [makeList(6, 14), makeList(12, 20)]);
+  });
+}

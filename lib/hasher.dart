@@ -12,13 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Receives a stream of timestamped audio data, in fixed sized chunks, and
-// yields a list of robust audio hashes for that chunk.
+import 'dart:typed_data';
+import 'package:fftea/fftea.dart';
+import 'util.dart';
+
+// Receives a stream frequency buckets. Yields a stream of hashes.
 //
 // As soon as the chunk callback is finished, the hash buffer that was sent will
 // be overwritten, so the callback should copy any data it needs.
 class Hasher {
-  void onData(int timeMs, Uint16List chunk){
-    // (chunk[i].toDouble() * 2.0 / 0xFFFF) - 1.0
+  final Uint64List _hashes;
+  final Float64List _prevPow_dF;
+  final Function(int, Uint64List) _reportHashes;
+
+  static const kReset = -1;
+  int _k = kReset;
+
+  Hasher(int bitsPerHash, int hashesPerChunk, this._reportHashes) :
+      _hashes = Uint64List(hashesPerChunk),
+      _prevPow_dF = Float64List(bitsPerHash);
+
+  void onData(Float64List powers) {
+    assert(powers.length == _prevPow_dF.length + 1);
+    int h = 0;
+    for (int i = 0; i < _prevPow_dF.length; ++i) {
+      final pow_dF = powers[i + 1] - powers[i];
+      if (_k >= 0) {
+        final pow_dFdt = pow_dF - _prevPow_dF[i];
+        h = (h << 1) | (pow_dFdt > 0 ? 0x1 : 0x0);
+      }
+      _prevPow_dF[i] = pow_dF;
+    }
+    if (_k >= 0) {
+      _hashes[_k] = h;
+    }
+    ++_k;
+  }
+
+  void endChunk(int timeMs) {
+    assert(_k == _hashes.length);
+    _reportHashes(timeMs, _hashes);
+    _k = kReset;
   }
 }

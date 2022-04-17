@@ -18,8 +18,11 @@
 //
 // As soon as the chunk callback is finished, the data buffer that was sent will
 // be overwritten, so the callback should copy any data it needs.
+
+import 'dart:typed_data';
+
 class Chunker {
-  final int _sampleRate;
+  final double _sampleRateMs;
   final int _chunkSize;
   final int _chunkStride;
   final int _chunkKeep;
@@ -27,8 +30,9 @@ class Chunker {
   int _i = 0;
   final void Function(int, Uint16List) _callback;
 
-  Chunker(this._sampleRate, this._chunkSize, this._chunkStride, this._callback) :
-      _chunkKeep = _chunkSize - chunkStride, _chunk = Uint16List(_chunkSize) {
+  Chunker(int sampleRate, this._chunkSize, this._chunkStride, this._callback) :
+      _sampleRateMs = 1e-3 * sampleRate,
+      _chunkKeep = _chunkSize - _chunkStride, _chunk = Uint16List(_chunkSize) {
     assert(_chunkStride > 0 && _chunkStride <= _chunkSize);
   }
 
@@ -39,8 +43,8 @@ class Chunker {
       if (_i >= _chunkSize) {
         // timeMs is the timestamp of the end of data. So however far back from
         // the end we are (divided by the sample rate) is our adjustment.
-        final adjustedTimeMs = timeMs - ((data.length - j) / _sampleRate);
-        _callback(adjustedTimeMs, _chunk);
+        final adjustedTimeMs = timeMs - ((data.length - 1 - j) / _sampleRateMs);
+        _callback(adjustedTimeMs.toInt(), _chunk);
 
         // Copy any data we're keeping from the previous chunk to the start of
         // the new chunk.
