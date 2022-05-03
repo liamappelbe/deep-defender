@@ -21,8 +21,8 @@ import 'package:deep_defender/pipeline.dart';
 import 'test_util.dart';
 
 main() {
-  test('Pipeline', () {
-    testPipeline(
+  test('Pipeline', () async {
+    await testPipeline(
       "test.wav",
       28672,
       2048,

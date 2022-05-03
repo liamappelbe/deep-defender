@@ -177,7 +177,7 @@ def generate(f):
     bucketItr = buckets(
         chunkItr, stftSize, stftStride, bitsPerHash)
     h = [x for x in hashes(bucketItr)]
-    write('    testBucketer(')
+    write('    await testPipeline(')
     write('      "%s",' % inFile)
     write('      %s,' % chunkSize)
     write('      %s,' % chunkStride)
@@ -190,7 +190,7 @@ def generate(f):
     write('      ],')
     write('    );')
 
-  write("  test('Pipeline', () {")
+  write("  test('Pipeline', () async {")
   makePipelineCase(kInputWav, kChunkSize, kChunkStride, kSamplesPerHash,
       kHashStride, kBitsPerHash)
   write('  });')

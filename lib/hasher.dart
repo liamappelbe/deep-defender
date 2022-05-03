@@ -13,7 +13,9 @@
 // limitations under the License.
 
 import 'dart:typed_data';
+
 import 'package:fftea/fftea.dart';
+
 import 'util.dart';
 
 // Receives a stream frequency buckets. Yields a stream of hashes.

@@ -13,8 +13,12 @@
 // limitations under the License.
 
 import 'dart:typed_data';
-import 'package:test/test.dart';
+
 import 'package:deep_defender/bucketer.dart';
+import 'package:deep_defender/pipeline.dart';
+import 'package:deep_defender/util.dart';
+import 'package:test/test.dart';
+import 'package:wav/wav.dart';
 
 void expectClose(List<double> out, List<double> exp, [double delta = 1e-6]) {
   expect(out.length, exp.length);
@@ -47,4 +51,27 @@ void testBucketer(int chunkSize, int stftSize, int stftStride, int buckets,
   for (int i = 0; i < out.length; ++i) {
     expectClose(out[i], exp[i], 1e-6);
   }
+}
+
+Future<void> testPipeline(String filename, int chunkSize, int chunkStride,
+    int samplesPerHash, int hashStride, int bitsPerHash,
+    List<List<int>> expectedHashes) async {
+  final wav = await Wav.readFile('test/$filename');
+  final audio = wav.toMono();
+  final data = Uint16List(audio.length);
+  f64ToU16(audio, data);
+  final actualHashes = <Uint64List>[];
+  final pipeline = Pipeline((int timeMs, Uint64List hashes) {
+    // TODO: Test timeMs.
+    actualHashes.add(hashes);
+  },
+    sampleRate: wav.samplesPerSecond,
+    chunkSize: chunkSize,
+    chunkStride: chunkStride,
+    samplesPerHash: samplesPerHash,
+    hashStride: hashStride,
+    bitsPerHash: bitsPerHash,
+    );
+  pipeline.onData((data.length * 1000 / wav.samplesPerSecond).floor(), data);
+  expect(actualHashes, expectedHashes);
 }

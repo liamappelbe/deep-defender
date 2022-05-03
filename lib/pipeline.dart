@@ -13,7 +13,13 @@
 // limitations under the License.
 
 import 'dart:typed_data';
+
 import 'package:fftea/fftea.dart';
+
+import 'bucketer.dart';
+import 'chunker.dart';
+import 'const.dart';
+import 'hasher.dart';
 import 'util.dart';
 
 /// Chains together Chunker -> Bucketer -> Hasher, for use in the app, and for
@@ -23,10 +29,24 @@ class Pipeline {
   late final Bucketer _bucketer;
   late final Hasher _hasher;
 
-  Pipeline(Function(int, Uint64List) reportHashes) {
-    _hasher = Hasher(kBitsPerHash, kHashesPerChunk, reportHashes);
-    _bucketer = Bucketer(kChunkSize, kSamplesPerHash, kHashStride, kBitsPerHash + 1, _hasher.onData, _hasher.endChunk);
-    _chunker = Chunker(kSampleRate, kChunkSize, kChunkStride, _bucketer.onData);
+  final int sampleRate;
+  final int chunkSize;
+  final int chunkStride;
+  final int samplesPerHash;
+  final int hashStride;
+  final int bitsPerHash;
+
+  Pipeline(Function(int, Uint64List) reportHashes, {
+    required this.sampleRate,
+    required this.chunkSize,
+    required this.chunkStride,
+    required this.samplesPerHash,
+    required this.hashStride,
+    required this.bitsPerHash,
+  }) {
+    _hasher = Hasher(bitsPerHash, kHashesPerChunk, reportHashes);
+    _bucketer = Bucketer(chunkSize, samplesPerHash, hashStride, bitsPerHash + 1, _hasher.onData, _hasher.endChunk);
+    _chunker = Chunker(sampleRate, chunkSize, chunkStride, _bucketer.onData);
   }
 
   void onData(int timeMs, Uint16List data) => _chunker.onData(timeMs, data);

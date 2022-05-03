@@ -13,7 +13,9 @@
 // limitations under the License.
 
 import 'dart:typed_data';
+
 import 'package:fftea/fftea.dart';
+
 import 'util.dart';
 
 // Receives a stream of timestamped audio data, in fixed sized chunks, runs
@@ -45,10 +47,7 @@ class Bucketer {
   // conjugate symmetric.
 
   void onData(int timeMs, Uint16List chunk) {
-    assert(_audio.length == chunk.length);
-    for (int i = 0; i < chunk.length; ++i) {
-      _audio[i] = (chunk[i].toDouble() * 2.0 / 0xFFFF) - 1.0;
-    }
+    u16ToF64(chunk, _audio);
     int j = 0;
     _stft.run(_audio, (Float64x2List freq) {
       int k = 0;

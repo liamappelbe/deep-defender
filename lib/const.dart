@@ -23,6 +23,6 @@ const int kBitsPerHash = 64;
 const double kHashOverlapFrac = 0.5;
 const int kSamplesPerHash = 4096;  // Must be a power of two.
 
-final int kHashStride = (kSamplesPerHash * (1 - kHashOverlapFrac)).toInt();
+final int kHashStride = (kSamplesPerHash * (1 - kHashOverlapFrac)).floor();
 final int kChunkSize = kHashesPerChunk * kHashStride + kSamplesPerHash;
-final int kChunkStride = (kSamplesPerHash * (1 - kChunkOverlapFrac)).toInt();
+final int kChunkStride = (kSamplesPerHash * (1 - kChunkOverlapFrac)).floor();

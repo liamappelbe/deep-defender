@@ -14,8 +14,10 @@
 
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:mic_stream/mic_stream.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import 'const.dart';
 
 // Calls the given callback every time a chunk of data is available from the

@@ -17,6 +17,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:share/share.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+
 import 'defender.dart';
 import 'microphone.dart';
 import 'key_store.dart';

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import 'dart:typed_data';
+
 import 'byte_signer.dart';
 import 'metadata.dart';
 
