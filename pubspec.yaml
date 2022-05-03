@@ -35,8 +35,8 @@ dependencies:
   test: ^1.19.5
   qr_flutter: ^4.0.0
   cupertino_icons: ^1.0.4
-  fftea:
-    path: ../fftea
+  fftea: ^1.0.0
+  wav: ^1.1.0
 
 dev_dependencies:
   flutter_test:

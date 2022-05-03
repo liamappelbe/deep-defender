@@ -38,6 +38,9 @@ kPreamble = '''// Copyright 2022 The Deep Defender Authors
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// GENERATED FILE. DO NOT EDIT. Generated with:
+//   python3 test/generate_bucketer_test.py
+
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:deep_defender/bucketer.dart';

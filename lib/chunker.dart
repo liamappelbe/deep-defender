@@ -36,7 +36,7 @@ class Chunker {
     assert(_chunkStride > 0 && _chunkStride <= _chunkSize);
   }
 
-  void onData(int timeMs, Uint16List data){
+  void onData(int timeMs, Uint16List data) {
     for (int j = 0; j < data.length; ++j) {
       _chunk[_i] = data[j];
       ++_i;

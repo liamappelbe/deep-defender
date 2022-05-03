@@ -21,7 +21,14 @@ import 'metadata.dart';
 import 'microphone.dart';
 import 'saf_code_builder.dart';
 
-// Connects a Microphone to a SafCodeBuilder running in a separate Isolate.
+/// Connects a Microphone to a SafCodeBuilder etc running in a separate Isolate.
+///
+/// UI isolate:    Microphone                                       Show in UI
+///                      \                                          /
+///                   AudioMessage                              QrMessage
+///                       \                                       /
+/// Defender isolate:   Chunker -> Bucketer -> Hasher -> SafCodeBuilder
+///                      `----- aka Pipeline ------'
 class Defender {
   final void Function(int, QrCode) _setQr;
   final void Function() _clearQr;
@@ -72,10 +79,10 @@ class QrMessage {
 class DefenderIsolate {
   final SendPort _send;
   final _recv = ReceivePort();
-  final _spectrogram = Spectrogram();
+  final Pipeline _pipeline;
   SafCodeBuilder? _codeBuilder;
 
-  DefenderIsolate(this._send) {
+  DefenderIsolate(this._send) : _pipeline(_onHashes) {
     _recv.listen(_onMessage);
     _send.send(_recv.sendPort);
   }
@@ -84,13 +91,18 @@ class DefenderIsolate {
     if (message is PrivateKey) {
       _codeBuilder =
           SafCodeBuilder(Metadata(), ByteSigner(message as PrivateKey));
-    } else if (_codeBuilder != null) {
+    } else {
       final am = message as AudioMessage;
-      final data = _codeBuilder!.generate(am.timeMs, am.fingerprint);
-      final qr = QrCode.fromUint8List(
-                  data: data,
-                  errorCorrectLevel: QrErrorCorrectLevel.L)..make();
-      _send.send(QrMessage(am.timeMs, qr));
+      _chunker.onData(am.timeMs, am.audio);
     }
+  }
+
+  void _onHashes(int timeMs, Uint64List hashes) {
+    if (_codeBuilder == null) return;
+    final data = _codeBuilder!.generate(timeMs, hashes);
+    final qr = QrCode.fromUint8List(
+                data: data,
+                errorCorrectLevel: QrErrorCorrectLevel.L)..make();
+    _send.send(QrMessage(timeMs, qr));
   }
 }

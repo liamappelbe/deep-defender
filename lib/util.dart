@@ -16,9 +16,10 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 Uint64List logItr(int end, int steps) {
-  final a = Uint64List(steps);;
-  for (int i = 1; i < steps; ++i)
+  final a = Uint64List(steps);
+  for (int i = 1; i < steps; ++i) {
     a[i - 1] = math.pow(end, i * 1.0 / steps).toInt();
+  }
   a[steps - 1] = end;
   return a;
 }
