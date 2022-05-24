@@ -30,9 +30,9 @@ class Hasher {
   static const kReset = -1;
   int _k = kReset;
 
-  Hasher(int bitsPerHash, int hashesPerChunk, this._reportHashes) :
-      _hashes = Uint64List(hashesPerChunk),
-      _prevPow_dF = Float64List(bitsPerHash);
+  Hasher(int bitsPerHash, int hashesPerChunk, this._reportHashes)
+      : _hashes = Uint64List(hashesPerChunk),
+        _prevPow_dF = Float64List(bitsPerHash);
 
   void onData(Float64List powers) {
     assert(powers.length == _prevPow_dF.length + 1);
@@ -40,8 +40,9 @@ class Hasher {
     for (int i = 0; i < _prevPow_dF.length; ++i) {
       final pow_dF = powers[i + 1] - powers[i];
       if (_k >= 0) {
-        final pow_dFdt = pow_dF - _prevPow_dF[i];
-        h = (h << 1) | (pow_dFdt > 0 ? 0x1 : 0x0);
+        if (pow_dF - _prevPow_dF[i] > 0) {
+          h |= 1 << i;
+        }
       }
       _prevPow_dF[i] = pow_dF;
     }

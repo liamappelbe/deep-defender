@@ -84,11 +84,11 @@ class _DefenderState extends State<DefenderPage> {
             onSelected: (void Function() value) => value(),
             itemBuilder: (BuildContext context) =>
                 <PopupMenuEntry<void Function()>>[
-                  PopupMenuItem<void Function()>(
-                    value: _sharePublicKey,
-                    child: Text('Share public key'),
-                  ),
-                ],
+              PopupMenuItem<void Function()>(
+                value: _sharePublicKey,
+                child: Text('Share public key'),
+              ),
+            ],
           ),
         ],
       ),
@@ -96,8 +96,10 @@ class _DefenderState extends State<DefenderPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            if (_qr != null) QrImage.withQr(qr: _qr)
-            else AspectRatio(aspectRatio: 1),
+            if (_qr != null)
+              QrImage.withQr(qr: _qr)
+            else
+              AspectRatio(aspectRatio: 1),
             Text(
               _text,
               textAlign: TextAlign.center,

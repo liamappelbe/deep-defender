@@ -24,7 +24,9 @@ class ByteSigner {
   ByteSigner(PrivateKey key)
       : _signer = key.createSigner(algorithms.signing.rsa.sha256) {}
 
-  int size() { return kSize; }
+  int size() {
+    return kSize;
+  }
 
   void fill(ByteData data, int signatureStart) {
     assert(signatureStart + kSize == data.lengthInBytes);

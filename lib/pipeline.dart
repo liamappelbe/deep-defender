@@ -36,7 +36,8 @@ class Pipeline {
   final int hashStride;
   final int bitsPerHash;
 
-  Pipeline(Function(int, Uint64List) reportHashes, {
+  Pipeline(
+    Function(int, Uint64List) reportHashes, {
     required this.sampleRate,
     required this.chunkSize,
     required this.chunkStride,
@@ -45,7 +46,8 @@ class Pipeline {
     required this.bitsPerHash,
   }) {
     _hasher = Hasher(bitsPerHash, kHashesPerChunk, reportHashes);
-    _bucketer = Bucketer(chunkSize, samplesPerHash, hashStride, bitsPerHash + 1, _hasher.onData, _hasher.endChunk);
+    _bucketer = Bucketer(chunkSize, samplesPerHash, hashStride, bitsPerHash + 1,
+        _hasher.onData, _hasher.endChunk);
     _chunker = Chunker(sampleRate, chunkSize, chunkStride, _bucketer.onData);
   }
 

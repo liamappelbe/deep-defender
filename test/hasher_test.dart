@@ -20,7 +20,7 @@ main() {
   test('Hasher', () {
     final hasher = Hasher(8, 4, (timeMs, hashes) {
       expect(timeMs, 1234);
-      expect(hashes, [0xB5, 0x4A, 0x72, 0x8D]);
+      expect(hashes, [0xAD, 0x52, 0x4E, 0xB1]);
     });
     hasher.onData(Float64List.fromList([0, 4, 1.5, 14, 100, 1, 93, 91, 28]));
     hasher.onData(Float64List.fromList([1, 10, 2.5, 64, 200, 2, 235, 12, 23]));

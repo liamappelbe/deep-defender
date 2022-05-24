@@ -19,7 +19,9 @@ import 'package:flutter/foundation.dart';
 import 'package:pointycastle/src/utils.dart' show encodeBigInt, decodeBigInt;
 import 'package:shared_preferences/shared_preferences.dart';
 
-KeyPair _generateKeyPair(Null) { return KeyPair.generateRsa(); }
+KeyPair _generateKeyPair(Null) {
+  return KeyPair.generateRsa();
+}
 
 /// Provides an RSA public/private key pair.
 ///

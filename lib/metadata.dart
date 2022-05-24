@@ -21,7 +21,9 @@ import 'const.dart';
 class Metadata {
   static const int kSize = kMagicString.length + 2 + 2 + 8;
 
-  int size() { return kSize; }
+  int size() {
+    return kSize;
+  }
 
   void fill(int timeMs, ByteData metadata) {
     // [magic string] [version (2)] [algorithm (2)] [time (8)]

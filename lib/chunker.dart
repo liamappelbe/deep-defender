@@ -30,9 +30,10 @@ class Chunker {
   int _i = 0;
   final void Function(int, Uint16List) _callback;
 
-  Chunker(int sampleRate, this._chunkSize, this._chunkStride, this._callback) :
-      _sampleRateMs = 1e-3 * sampleRate,
-      _chunkKeep = _chunkSize - _chunkStride, _chunk = Uint16List(_chunkSize) {
+  Chunker(int sampleRate, this._chunkSize, this._chunkStride, this._callback)
+      : _sampleRateMs = 1e-3 * sampleRate,
+        _chunkKeep = _chunkSize - _chunkStride,
+        _chunk = Uint16List(_chunkSize) {
     assert(_chunkStride > 0 && _chunkStride <= _chunkSize);
   }
 

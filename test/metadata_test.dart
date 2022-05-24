@@ -22,8 +22,24 @@ main() {
     final m = Metadata();
     final buf = Uint8List(m.size());
     m.fill(0x0123456789ABCDEF, buf.buffer.asByteData());
-    expect(buf, equals([
-        83, 65, 70, 0, 0, 0, 0,
-        0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]));
+    expect(
+        buf,
+        equals([
+          83,
+          65,
+          70,
+          0,
+          0,
+          0,
+          0,
+          0x01,
+          0x23,
+          0x45,
+          0x67,
+          0x89,
+          0xAB,
+          0xCD,
+          0xEF
+        ]));
   });
 }

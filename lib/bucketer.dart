@@ -36,11 +36,11 @@ class Bucketer {
   final Function(int) _endChunk;
 
   Bucketer(int chunkSize, int stftSize, this._stftStride, int buckets,
-      this._reportPowers, this._endChunk) :
-      _stft = STFT(stftSize, Window.hanning(stftSize)),
-      _audio = Float64List(chunkSize),
-      _powers = Float64List(buckets),
-      _itr = logItr(1 + stftSize ~/ 2, buckets);
+      this._reportPowers, this._endChunk)
+      : _stft = STFT(stftSize, Window.hanning(stftSize)),
+        _audio = Float64List(chunkSize),
+        _powers = Float64List(buckets),
+        _itr = logItr(1 + stftSize ~/ 2, buckets);
 
   // Note: The log iterator only goes up to stftSize/2 because the input signal
   // is real, so we only care about the first half of the spectrum, because it's

@@ -70,11 +70,13 @@ def readMonoWav(filename, outputSampleRate):
     width = w.getsampwidth()
     if width < 1 or width > 4:
       raise "Invalid bit width (must be 8, 16, 24, or 32): %s" % (width * 8)
-    div = (1 << (width * 8 - 1)) * 1.0
+    shift = 1 << (width * 8 - 1)
+    div = shift - 0.5
     conv1 = (
         (lambda b: (int.from_bytes(b, byteorder="little") / div) - 1.0)
             if width == 1 else
-        (lambda b: int.from_bytes(b, byteorder="little", signed=True) / div))
+        (lambda b: ((int.from_bytes(
+            b, byteorder="little", signed=True) + shift) / div) - 1.0))
     conv = (conv1 if mono else
         (lambda b: 0.5 * (conv1(b[:len(b) // 2]) + conv1(b[len(b) // 2:]))))
     a = []
@@ -82,8 +84,7 @@ def readMonoWav(filename, outputSampleRate):
     step = w.getnchannels() * w.getsampwidth()
     for i in range(0, len(wb), step):
       a.append(conv(wb[i : i + step]))
-    resamp = int(len(a) * outputSampleRate / w.getframerate())
-    return numpy.fft.irfft(numpy.fft.rfft(a), resamp)
+    return a
 
 def realBufStr(a):
   def impl(b):

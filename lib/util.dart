@@ -28,7 +28,7 @@ Uint64List logItr(int end, int steps) {
 void u16ToF64(Uint16List a, Float64List b) {
   assert(b.length == a.length);
   for (int i = 0; i < a.length; ++i) {
-    b[i] = (a[i].toDouble() * 2.0 / 0xFFFF) - 1.0;
+    b[i] = (a[i].toDouble() / ((1 << 15) - 0.5)) - 1.0;
   }
 }
 
@@ -39,6 +39,10 @@ void f64ToU16(Float64List a, Uint16List b) {
   final limit = (1 << 16) - 1;
   for (int i = 0; i < a.length; ++i) {
     final x = ((a[i] + 1) * scale).floor();
-    b[i] = x < 0 ? 0 : x > limit ? limit : x;
+    b[i] = x < 0
+        ? 0
+        : x > limit
+            ? limit
+            : x;
   }
 }
