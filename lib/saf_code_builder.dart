@@ -33,7 +33,7 @@ class SafCodeBuilder {
       _bytes = _buf.buffer.asByteData();
     }
     _metadata.fill(timeMs, _bytes);
-    for (var i = 0; i < fingerprint.length; ++i) {
+    for (int i = 0; i < fingerprint.length; ++i) {
       _bytes.setUint8(i + _metadata.size(), fingerprint[i]);
     }
     final dataSize = _metadata.size() + fingerprint.length;

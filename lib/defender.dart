@@ -84,7 +84,7 @@ class DefenderIsolate {
   final Pipeline _pipeline;
   SafCodeBuilder? _codeBuilder;
 
-  DefenderIsolate(this._send) : _pipeline(_onHashes) {
+  DefenderIsolate(this._send) : _pipeline = _onHashes {
     _recv.listen(_onMessage);
     _send.send(_recv.sendPort);
   }
@@ -103,8 +103,8 @@ class DefenderIsolate {
     if (_codeBuilder == null) return;
     final data = _codeBuilder!.generate(timeMs, hashes);
     final qr = QrCode.fromUint8List(
-                data: data,
-                errorCorrectLevel: QrErrorCorrectLevel.L)..make();
+        data: data, errorCorrectLevel: QrErrorCorrectLevel.L)
+      ..make();
     _send.send(QrMessage(timeMs, qr));
   }
 }

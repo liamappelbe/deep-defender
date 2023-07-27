@@ -27,7 +27,7 @@ class Metadata {
 
   void fill(int timeMs, ByteData metadata) {
     // [magic string] [version (2)] [algorithm (2)] [time (8)]
-    for (var i = 0; i < kMagicString.length; ++i) {
+    for (int i = 0; i < kMagicString.length; ++i) {
       metadata.setUint8(i, kMagicString.codeUnitAt(i));
     }
 
