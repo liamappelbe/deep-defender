@@ -18,9 +18,11 @@ import 'dart:typed_data';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr/qr.dart';
 
-import 'byte_signer.dart';
+import 'const.dart';
+import 'crypto.dart';
 import 'metadata.dart';
 import 'microphone.dart';
+import 'pipeline.dart';
 import 'saf_code_builder.dart';
 
 /// Connects a Microphone to a SafCodeBuilder etc running in a separate Isolate.
@@ -33,14 +35,13 @@ import 'saf_code_builder.dart';
 ///                      `----- aka Pipeline ------'
 class Defender {
   final void Function(int, QrCode) _setQr;
-  final void Function() _clearQr;
   final Future<PrivateKey> _privateKey;
   final _recv = ReceivePort();
-  late final Future<Microphone> _microphone;
+  late final Future<Microphone?> _microphone;
   late final Future<Isolate> _isolate;
   SendPort? _send;
 
-  Defender(this._setQr, this._clearQr, this._privateKey) {
+  Defender(this._setQr, this._privateKey) {
     _recv.listen(_onMessage);
     _isolate = Isolate.spawn(defenderIsolateMain, _recv.sendPort);
     _microphone = Microphone.mic(_updateCode);
@@ -49,7 +50,7 @@ class Defender {
   void _onMessage(dynamic message) {
     if (message is SendPort) {
       _send = message as SendPort;
-      _privateKey.then((pk) => _send.send(pk));
+      _privateKey.then((pk) => _send?.send(pk));
     } else {
       final qrm = message as QrMessage;
       _setQr(qrm.timeMs, qrm.qr);
@@ -57,7 +58,6 @@ class Defender {
   }
 
   void _updateCode(int timeMs, Uint16List audio) {
-    _clearQr();
     _send?.send(AudioMessage(timeMs, audio));
   }
 }
@@ -81,10 +81,19 @@ class QrMessage {
 class DefenderIsolate {
   final SendPort _send;
   final _recv = ReceivePort();
-  final Pipeline _pipeline;
+  late final Pipeline _pipeline;
   SafCodeBuilder? _codeBuilder;
 
-  DefenderIsolate(this._send) : _pipeline = _onHashes {
+  DefenderIsolate(this._send) {
+    _pipeline = Pipeline(
+        _onHashes,
+        sampleRate: kSampleRate,
+        chunkSize: kChunkSize,
+        chunkStride: kChunkStride,
+        samplesPerHash: kSamplesPerHash,
+        hashStride: kHashStride,
+        bitsPerHash: kBitsPerHash,
+    );
     _recv.listen(_onMessage);
     _send.send(_recv.sendPort);
   }
@@ -92,19 +101,18 @@ class DefenderIsolate {
   void _onMessage(dynamic message) {
     if (message is PrivateKey) {
       _codeBuilder =
-          SafCodeBuilder(Metadata(), ByteSigner(message as PrivateKey));
+          SafCodeBuilder(Metadata(), (message as PrivateKey).signer());
     } else {
       final am = message as AudioMessage;
-      _chunker.onData(am.timeMs, am.audio);
+      _pipeline.onData(am.timeMs, am.audio);
     }
   }
 
   void _onHashes(int timeMs, Uint64List hashes) {
     if (_codeBuilder == null) return;
-    final data = _codeBuilder!.generate(timeMs, hashes);
+    final data = _codeBuilder!.generate(timeMs, hashes.buffer.asUint8List());
     final qr = QrCode.fromUint8List(
-        data: data, errorCorrectLevel: QrErrorCorrectLevel.L)
-      ..make();
+        data: data, errorCorrectLevel: QrErrorCorrectLevel.L);
     _send.send(QrMessage(timeMs, qr));
   }
 }

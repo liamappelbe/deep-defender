@@ -19,24 +19,9 @@ import 'package:deep_defender/key_store.dart';
 import 'package:test/test.dart';
 
 const kTestKey =
-    '{"kty":"RSA","alg":"RS256","use":"sig","n":"AIWJIVrOZGEwFAGU1z'
-    'AmEJkFXVntpASFH1cjSxT9-X3WpeKZ8txr6D_l4NIA3Nih5f7OAADG8neEXsah'
-    'bO5lmEL7sSCNHUUtkbIqUoe5IQwPsjW0gd02IUybHKy-2u503QH5puB0NVLsmf'
-    'UuDRqJO7sca6QZ4msR2ZbTj7RERnGh7kH5TNf5eaMSK7O1PqMqQm556lahZMaX'
-    'g4MnsTQMWosLzL3YuPKKH7wiubHek6aZoCbCHWQ1OZCETAOJUnYNcDu38hQQ2G'
-    'zexjBMVKu-YEyaQUibh6ZSKoffxdrr8YQ3wUT4l_Ap0FcVl1VJfSKtBkWHt47B'
-    'q9VeJ6TmzETuhKk=","e":"AQAB","d":"Ij_WvzyagFbder5bJu1MaoL2u375'
-    'B3PBYw8ZTcwKNp1cNK95m9FNYz4pmJNCEYoMvHrHg2uDeuYHjPiQQODr2ZpGhu'
-    'vKqxiR-tliC4-PC1HnSmD-wecFSWmrRB87ddeha8VFaOJFXvxyTHFASSMTn90d'
-    'Opys9vtADLA8dmbgjnoz7FahhzWnY5Yuyjc2F_oSdKW568mwwM3x7ze9JST6Da'
-    'enzifbMXne-jXYYf5ybrjj1oosW7UY1T3fQar5LKAJym1M-rFoFcCJPLMYoTAw'
-    'lN4_P180PfCWZByJUldqpAg2HVkU1f9Ksk5dQ3EPovccoQOwMiPItHeznZ7omb'
-    'AHAQ==","p":"AMOWIyTpYmZENkszapxVN_xkMTssqlz0-CuEbp64JwvDMh-QM'
-    'vDlzC8xh4viD5w53Ysl22fMPnc4kHnkVQ5BE2jt7-JgQOaDpvDfYx4ELJ5Kxm3'
-    'jWkln96XNtL-ryFM_Ij9AmiAiMl7LfekGcnIkFKDdxy8BctpXMx2eRu-OqqDh"'
-    ',"q":"AK7IXndISqxWG7MruD04dFSmY1P1kI4nkc7sUJ6pfgfQlNxRXe-_yLsR'
-    'YOpYeCJXEqP12_0w_MRJr7xCOsG8-g166Am7e3fHnIS_AMy19uNcHPVJtlY2mq'
-    'lzgJRPz7OZpJNe5IyvAI5ChLIaaeOIiWK1KTiFcxVK7a0t5PzK2LTJ"}';
+    '{"kty":"EC","alg":"ES256","use":"sig","crv":"P-256","x":"AJXCXc4kQBQm'
+    'bMLi2MpwrklFJtQC01LYCwwF-cdodv_z","y":"cyV700E19jQVyGf9S0vdsfpjj-hkhx'
+    'OhVMlzkB-9AJc=","d":"AK86ItzaEXq05gA5LhLSnAmP6aPLrSotlSqq67TvgvIx"}';
 
 main() {
   test('Byte signer produces correct signature', () {
@@ -59,12 +44,8 @@ main() {
     expect(keyPair.toJwk(includePrivateKey: true), kTestKey);
     expect(
         keyPair.toJwk(),
-        '{"kty":"RSA","alg":"RS256","use":"sig","n":"AIWJIVrOZGEwFAGU1z'
-        'AmEJkFXVntpASFH1cjSxT9-X3WpeKZ8txr6D_l4NIA3Nih5f7OAADG8neEXsah'
-        'bO5lmEL7sSCNHUUtkbIqUoe5IQwPsjW0gd02IUybHKy-2u503QH5puB0NVLsmf'
-        'UuDRqJO7sca6QZ4msR2ZbTj7RERnGh7kH5TNf5eaMSK7O1PqMqQm556lahZMaX'
-        'g4MnsTQMWosLzL3YuPKKH7wiubHek6aZoCbCHWQ1OZCETAOJUnYNcDu38hQQ2G'
-        'zexjBMVKu-YEyaQUibh6ZSKoffxdrr8YQ3wUT4l_Ap0FcVl1VJfSKtBkWHt47B'
-        'q9VeJ6TmzETuhKk=","e":"AQAB"}');
+        '{"kty":"EC","alg":"ES256","use":"sig","crv":"P-256","x":"AJXCXc4kQBQm'
+        'bMLi2MpwrklFJtQC01LYCwwF-cdodv_z","y":"cyV700E19jQVyGf9S0vdsfpjj-hkhx'
+        'OhVMlzkB-9AJc="}');
   });
 }

@@ -15,7 +15,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:share/share.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import 'defender.dart';
@@ -44,7 +44,7 @@ class DeepDefenderApp extends StatelessWidget {
 class DefenderPage extends StatefulWidget {
   final String title;
   final _keyStore = KeyStore();
-  DefenderPage({Key key, this.title}) : super(key: key);
+  DefenderPage({Key? key, required this.title}) : super(key: key);
 
   @override
   _DefenderState createState() => _DefenderState(_keyStore);
@@ -52,25 +52,19 @@ class DefenderPage extends StatefulWidget {
 
 class _DefenderState extends State<DefenderPage> {
   final KeyStore _keyStore;
-  Defender _defender;
-  QrCode _qr;
+  late final Defender _defender;
+  QrCode? _qr;
   String _text = "Waiting to hear from the microphone...";
   _DefenderState(this._keyStore) {
-    _defender = Defender(_setQr, _clearQr, _keyStore.privateKey());
+    _defender = Defender(_setQr, _keyStore.privateKey());
   }
 
   void _setQr(int timeMs, QrCode qr) {
     setState(() {
       _qr = qr;
       final dt = DateTime.now().millisecondsSinceEpoch - timeMs;
-      final cpu = dt / 1e3 / Microphone.kRefreshTime;
-      _text = "Latency: ${dt}ms\nCPU: ${(100 * cpu).toStringAsFixed(2)}%";
-    });
-  }
-
-  void _clearQr() {
-    setState(() {
-      _qr = null;
+      //final cpu = dt / 1e3 / Microphone.kRefreshTime;
+      _text = "Latency: ${dt}ms"; // \nCPU: ${(100 * cpu).toStringAsFixed(2)}%
     });
   }
 
@@ -97,7 +91,7 @@ class _DefenderState extends State<DefenderPage> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
             if (_qr != null)
-              QrImage.withQr(qr: _qr)
+              QrImageView.withQr(qr: _qr!)
             else
               AspectRatio(aspectRatio: 1),
             Text(

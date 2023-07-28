@@ -22,10 +22,18 @@ import 'package:pointycastle/src/utils.dart' show encodeBigInt, decodeBigInt;
 /// should be able to switch the crypto algorithm without changing the rest of
 /// the app.
 
-final _signingAlgorithm = ck.algorithms.signing.rsa.sha256;
-const _signatureLength = 256;
-typedef _PublicKeyImpl = ck.RsaPublicKey;
-typedef _PrivateKeyImpl = ck.RsaPrivateKey;
+typedef _KeyPairImpl = ck.KeyPair;
+typedef _SignerImpl = ck.Signer;
+typedef _VerifierImpl = ck.Verifier;
+typedef _SignatureImpl = ck.Signature;
+
+final _signingAlgorithm = ck.algorithms.signing.ecdsa.sha256;
+const _signatureLengthBytes = 64;
+final _ecCurve = ck.curves.p256;
+typedef _PublicKeyImpl = ck.EcPublicKey;
+typedef _PrivateKeyImpl = ck.EcPrivateKey;
+
+_KeyPairImpl _generateKeyPair() => _KeyPairImpl.generateEc(_ecCurve);
 
 class PublicKey {
   final _PublicKeyImpl _key;
@@ -40,11 +48,11 @@ class PrivateKey {
 }
 
 class Signer {
-  final ck.Signer _signer;
+  final _SignerImpl _signer;
   Signer(this._signer);
 
   // Output signature length in bytes.
-  static const int length = _signatureLength;
+  static const int length = _signatureLengthBytes;
 
   Uint8List sign(Uint8List input) {
     final s = _signer.sign(input).data;
@@ -62,12 +70,12 @@ class Signer {
 }
 
 class Verifier {
-  final ck.Verifier _verifier;
+  final _VerifierImpl _verifier;
   Verifier(this._verifier);
 
   bool verify(Uint8List input, Uint8List signature) {
     assert(signature.length == Signer.length);
-    return _verifier.verify(input, ck.Signature(signature));
+    return _verifier.verify(input, _SignatureImpl(signature));
   }
 
   bool verifyInline(Uint8List input) {
@@ -83,30 +91,26 @@ class KeyPair {
   final PrivateKey privateKey;
 
   KeyPair._(this.publicKey, this.privateKey);
-  KeyPair._kp(ck.KeyPair kp)
+  KeyPair._kp(_KeyPairImpl kp)
       : this._(PublicKey._(kp.publicKey as _PublicKeyImpl),
             PrivateKey._(kp.privateKey as _PrivateKeyImpl));
 
-  static KeyPair generate() => KeyPair._kp(ck.KeyPair.generateRsa());
-  static KeyPair fromJwk(String jwk) =>
-      KeyPair._kp(ck.KeyPair.fromJwk(jsonDecode(jwk) as Map<String, dynamic>));
+  static KeyPair generate() => KeyPair._kp(_generateKeyPair());
+  static KeyPair fromJwk(String jwk) => KeyPair._kp(
+      _KeyPairImpl.fromJwk(jsonDecode(jwk) as Map<String, dynamic>));
 
   String toJwk({bool includePrivateKey = false}) {
     // See https://tools.ietf.org/html/rfc7517 and rfc7518.
-    final pub = publicKey._key;
-    final n = _base64UrlUint(pub.modulus);
-    final e = _base64UrlUint(pub.exponent);
-    String pk = "";
+    final x = _bigIntToBase64(publicKey._key.xCoordinate);
+    final y = _bigIntToBase64(publicKey._key.yCoordinate);
+    final pub = '"x":"$x","y":"$y"';
+    String priv = '';
     if (includePrivateKey) {
-      final priv = privateKey._key;
-      assert(priv.modulus == pub.modulus);
-      final d = _base64UrlUint(priv.privateExponent);
-      final p = _base64UrlUint(priv.firstPrimeFactor);
-      final q = _base64UrlUint(priv.secondPrimeFactor);
-      pk = ',"d":"$d","p":"$p","q":"$q"';
+      final d = _bigIntToBase64(privateKey._key.eccPrivateKey);
+      priv = ',"d":"$d"';
     }
-    return '{"kty":"RSA","alg":"RS256","use":"sig","n":"$n","e":"$e"$pk}';
+    return '{"kty":"EC","alg":"ES256","use":"sig","crv":"P-256",$pub$priv}';
   }
 }
 
-String _base64UrlUint(BigInt x) => base64UrlEncode(encodeBigInt(x));
+String _bigIntToBase64(BigInt x) => base64UrlEncode(encodeBigInt(x));

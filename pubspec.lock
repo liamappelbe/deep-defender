@@ -352,6 +352,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.7"
+  pem:
+    dependency: "direct main"
+    description:
+      name: pem
+      sha256: "198e02e1e9b73c9b4046944f109089c5d2a4ff79e4c47436efb969f4587dd9eb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.4"
   permission_handler:
     dependency: "direct main"
     description:

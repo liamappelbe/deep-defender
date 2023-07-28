@@ -14,22 +14,24 @@
 
 import 'dart:typed_data';
 
-import 'byte_signer.dart';
+import 'crypto.dart';
 import 'metadata.dart';
 
 // Combines the audio fingerprint, signature, and metadata into a SAF code.
 class SafCodeBuilder {
-  final ByteSigner _signer;
+  final Signer _signer;
   final Metadata _metadata;
-  Uint8List _buf;
-  ByteData _bytes;
+  bool init = false;
+  late Uint8List _buf;
+  late ByteData _bytes;
   SafCodeBuilder(this._metadata, this._signer) {}
 
   Uint8List generate(int timeMs, Uint8List fingerprint) {
     // [metadata] [audio fingerprint] [signature]
     // [        signable data       ] [signature]
-    if (_buf == null) {
-      _buf = Uint8List(_metadata.size() + fingerprint.length + _signer.size());
+    if (!init) {
+      init = true;
+      _buf = Uint8List(_metadata.size() + fingerprint.length + Signer.length);
       _bytes = _buf.buffer.asByteData();
     }
     _metadata.fill(timeMs, _bytes);
@@ -37,7 +39,7 @@ class SafCodeBuilder {
       _bytes.setUint8(i + _metadata.size(), fingerprint[i]);
     }
     final dataSize = _metadata.size() + fingerprint.length;
-    _signer.fill(_bytes, dataSize);
+    _signer.signInline(_buf, dataSize);
     return _buf;
   }
 }
