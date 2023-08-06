@@ -22,6 +22,7 @@ const int kHashesPerChunk = 12;
 const int kBitsPerHash = 64;
 const double kHashOverlapFrac = 0.5;
 const int kSamplesPerHash = 4096; // Must be a power of two.
+// TODO: Is it still true that ^ must be a power of 2?
 
 final int kHashStride = (kSamplesPerHash * (1 - kHashOverlapFrac)).floor();
 final int kChunkSize = kHashesPerChunk * kHashStride + kSamplesPerHash;
