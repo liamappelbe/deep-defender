@@ -103,3 +103,20 @@ is ms since epoch, and marks the start of the 1 second chunk of audio that was
 fingerprinted.
 
 All uints are stored in big-endian mode.
+
+## ML notes
+There are existing ML models designed to detect deep fakes, but that's a
+different problem and is much more difficult. The advantage of SAF codes is that
+it reduces the problem to detecting if two segments of audio are the same
+(modulo compression and noise etc), which is much easier.
+
+- Data set: https://www.kaggle.com/mozillaorg/common-voice
+- Retrieved on 15/02/2021
+- The data set was preprocessed by running embedder/clean.py on every file in
+  the cv-valid-* data sets.
+- Then the model was trained using embedder/train.py
+
+The embedder's task was to decide if 2 audio chunks were the same based on the
+pythagorean distance between their 2 embeddings. It achieved 99.5% accuracy at
+this task, but more experimentation is needed to determine how this translates
+to the strength of the defense against malicious editing.
