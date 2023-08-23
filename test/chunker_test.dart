@@ -16,12 +16,12 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:deep_defender/chunker.dart';
 
-Uint16List makeList(int from, int to) {
-  final a = <int>[];
+Float64List makeList(int from, int to) {
+  final a = <double>[];
   for (int i = from; i < to; ++i) {
-    a.add(i);
+    a.add(i.toDouble());
   }
-  return Uint16List.fromList(a);
+  return Float64List.fromList(a);
 }
 
 main() {
@@ -31,10 +31,10 @@ main() {
     //                   [6  7  8  9  10  11  12  13]
     //                                       [12  13  ...
     var times = <int>[];
-    var out = <Uint16List>[];
-    final c = Chunker(200, 8, 6, (int timeMs, Uint16List data) {
+    var out = <Float64List>[];
+    final c = Chunker(200, 8, 6, (int timeMs, Float64List data) {
       times.add(timeMs);
-      out.add(Uint16List.fromList(data));
+      out.add(Float64List.fromList(data));
     });
 
     c.onData(50, makeList(0, 10));
@@ -49,8 +49,16 @@ main() {
 
     times = [];
     out = [];
-    c.onData(100, makeList(12, 20));
+    c.onData(115, makeList(12, 23));
     expect(times, [70, 100]);
     expect(out, [makeList(6, 14), makeList(12, 20)]);
+
+    times = [];
+    out = [];
+    c.flush(150);
+    expect(times, [150]);
+    expect(out, [
+      [18, 19, 20, 21, 22, 0, 0, 0]
+    ]);
   });
 }

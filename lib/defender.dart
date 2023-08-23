@@ -86,13 +86,13 @@ class DefenderIsolate {
 
   DefenderIsolate(this._send) {
     _pipeline = Pipeline(
-        _onHashes,
-        sampleRate: kSampleRate,
-        chunkSize: kChunkSize,
-        chunkStride: kChunkStride,
-        samplesPerHash: kSamplesPerHash,
-        hashStride: kHashStride,
-        bitsPerHash: kBitsPerHash,
+      _onHashes,
+      sampleRate: kSampleRate,
+      chunkSize: kChunkSize,
+      chunkStride: kChunkStride,
+      samplesPerHash: kSamplesPerHash,
+      hashStride: kHashStride,
+      bitsPerHash: kBitsPerHash,
     );
     _recv.listen(_onMessage);
     _send.send(_recv.sendPort);

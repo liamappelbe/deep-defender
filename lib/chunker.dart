@@ -26,18 +26,18 @@ class Chunker {
   final int _chunkSize;
   final int _chunkStride;
   final int _chunkKeep;
-  final Uint16List _chunk;
+  final Float64List _chunk;
   int _i = 0;
-  final void Function(int, Uint16List) _callback;
+  final void Function(int, Float64List) _callback;
 
   Chunker(int sampleRate, this._chunkSize, this._chunkStride, this._callback)
       : _sampleRateMs = 1e-3 * sampleRate,
         _chunkKeep = _chunkSize - _chunkStride,
-        _chunk = Uint16List(_chunkSize) {
+        _chunk = Float64List(_chunkSize) {
     assert(_chunkStride > 0 && _chunkStride <= _chunkSize);
   }
 
-  void onData(int timeMs, Uint16List data) {
+  void onData(int timeMs, Float64List data) {
     for (int j = 0; j < data.length; ++j) {
       _chunk[_i] = data[j];
       ++_i;
@@ -55,5 +55,14 @@ class Chunker {
         _i = _chunkKeep;
       }
     }
+  }
+
+  void flush(int timeMs) {
+    // Fill the rest of the buffer with 0s and send it to the callback.
+    for (; _i < _chunkSize; ++_i) {
+      _chunk[_i] = 0;
+    }
+    _callback(timeMs, _chunk);
+    _i = 0;
   }
 }

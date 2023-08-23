@@ -14,6 +14,7 @@
 
 import 'dart:collection';
 import 'dart:typed_data';
+import 'package:wav/util.dart';
 
 import 'const.dart';
 import 'crypto.dart';
@@ -23,17 +24,19 @@ import 'pipeline.dart';
 // TODO: These depend on the hash algorithm.
 const double _minAllowedSpeed = 0.9;
 const double _maxAllowedSpeed = 2 - _minAllowedSpeed;
-const double _minDetectableSpeed = 0.55;  // Just above 0.5.
-const double _maxDetectableSpeed = 2 - _maxDetectableSpeed;
-const double _hashLengthSec = kChunkSize / kSampleRate;
-const double _hashStrideSec = kChunkStride / kSampleRate;
-const int _minTimeBetweenHashesMs = (1000 * _minDetectableSpeed * _hashStrideSec).floor();
-const int _maxTimeBetweenHashesMs = (1000 * _maxDetectableSpeed * _hashStrideSec).ceil();
+const double _minDetectableSpeed = 0.55; // Just above 0.5.
+const double _maxDetectableSpeed = 2 - _minDetectableSpeed;
 const int _hashSampleRate = kSampleRate;
+final int _chunkSize = kChunkSize;
+final double _hashLengthSec = kChunkSize / kSampleRate;
+final double _hashStrideSec = kChunkStride / kSampleRate;
+final int _minTimeBetweenHashesMs =
+    (1000 * _minDetectableSpeed * _hashStrideSec).floor();
+final int _maxTimeBetweenHashesMs =
+    (1000 * _maxDetectableSpeed * _hashStrideSec).ceil();
 
 /// Verifies that a segment of audio matches a sequence of hashes.
-class Verifier {
-  final Pipeline _pipeline;
+class SafCodeVerifier {
   final Verifier _verifier;
   final int _sampleRate;
   final void Function(VerifierResult) _onResult;
@@ -48,18 +51,21 @@ class Verifier {
 
   final _timingEstimator = _TimingEstimator();
 
-  Verifier(this._pipeline, PublicKey publicKey, this._sampleRate, this._onResult) : _verifier = publicKey.verifier();
+  SafCodeVerifier(PublicKey publicKey, this._sampleRate, this._onResult)
+      : _verifier = publicKey.verifier();
 
   // TODO: If _sampleRate != _hashSampleRate, use FFT to resample the audio.
-  void addAudio(Float64List audio) {
+  Future<void> addAudio(Float64List audio) async {
     _audio.addAll(audio);
-    _flush();
+    await _flush();
   }
 
-  void addSafCode(Uint8List safCode) {
+  Future<void> addSafCode(Uint8List safCode) async {
     _safCodes.add(safCode);
-    _flush();
+    await _flush();
   }
+
+  // TODO: Add a flush method that pads the audio with zeros and flushes.
 
   Future<void> _flush() async {
     if (_flushing) return;
@@ -86,9 +92,9 @@ class Verifier {
 
     // Check that the signature matches.
     final split = safCode.length - Signer.length;
-    final hash = Uint8List.sublistView(safCode, SafCodeHeader.length, split);
+    final headerAndHash = Uint8List.sublistView(safCode, 0, split);
     final sig = Uint8List.sublistView(safCode, split);
-    if (!_verifier.verify(hash, sig)) {
+    if (!_verifier.verify(headerAndHash, sig)) {
       return VerifierResult(safCode, VerifierStatus.signatureError, header);
     }
 
@@ -109,21 +115,24 @@ class Verifier {
 
     // Run the hash checker with different latency values until we get a
     // match. If we have to change the latency by too much, give up.
-    final possibleChunk = _audioSlice(
-        est.minAudioTimeSec, est.maxAudioTimeSec + _hashLengthSec);
-    final hashCheck = _HashCheck(possibleChunk, est.minAudioTimeSec);
+    final hash = Uint8List.sublistView(safCode, SafCodeHeader.length, split);
+    final possibleChunk =
+        _audioSlice(est.minAudioTimeSec, est.maxAudioTimeSec + _hashLengthSec);
+    final hashCheck = _HashCheck(hash, possibleChunk, est.minAudioTimeSec);
     final strategy = _CheckingStrategy(est);
-    final result = strategy.run(hashCheck);
+    final searchResult = strategy(hashCheck);
 
-    if (result.error == VarifierStatus.hashError) {
+    if (searchResult.score < hashCheck.minAllowedScore) {
       return VerifierResult(safCode, VerifierStatus.hashError, header);
     }
-    final relativeLatency = result.audioTimeSec - est.estAudioTimeSec;
+    final audioTimeSec = searchResult.t;
+    final matchedAudio = hashCheck.getAudioSlice(searchResult.t)!;
+    final relativeLatency = audioTimeSec - est.estAudioTimeSec;
     final speed = _timingEstimator.estimateSpeed;
-    final audioMatch = AudioMatch(result.matchedAudio, relativeLatency, speed);
+    final audioMatch = AudioMatch(matchedAudio, relativeLatency, speed);
 
     // Update the timing estimator.
-    _timingEstimator.setTime(result.audioTimeSec, header.timeMs);
+    _timingEstimator.setTime(audioTimeSec, header.timeMs);
 
     // Check for speed errors.
     if (speed < _minAllowedSpeed || speed > _maxAllowedSpeed) {
@@ -133,19 +142,19 @@ class Verifier {
     // TODO(ZXCV): Drop data from the audio buffer and update the audio index.
 
     // Report result.
-    return result;
+    return VerifierResult(safCode, VerifierStatus.ok, header, audioMatch);
   }
 
   int get _minAudioCodeSize {
-    return (1.5 * _pipeline.chunkSize).toInt();
+    return (1.5 * _chunkSize).toInt();
   }
 
   Float64List _audioSlice(double t0, double t1) {
-    final i0 = (t0 * _hashSampleRate).round();  // TODO(ZXCV): _audioSampleIndex
+    final i0 = (t0 * _hashSampleRate).round(); // TODO(ZXCV): _audioSampleIndex
     final i1 = (t1 * _hashSampleRate).round();
     final slice = Float64List(i1 - i0);
     for (int i = i0; i < i1; ++i) {
-      slice[i - i0] = _audio[i];
+      slice[i - i0] = i < _audio.length ? _audio[i] : 0;
     }
     return slice;
   }
@@ -155,33 +164,97 @@ class _CheckingStrategy {
   final _TimingEstimate _est;
   _CheckingStrategy(this._est);
 
-  VerifierStatus call(_HashCheck check) {
-    double range = _est.maxAudioTimeSec - _est.minAudioTimeSec;
-    double offset = _est.minAudioTimeSec;
-    for (double rmul in [1, 0.1]) {
-      // TODO: On second iteration, hone in on the best score
-      for (int i = 0; i <= 10; ++i) {
-        final o = offset + i * range * rmul / 11.0;
-        final score = check(o);
-        // TODO: Adjust the score based on how close it is to the estAudioTime
+  SearchResult call(_HashCheck check) {
+    double range = (_est.maxAudioTimeSec - _est.minAudioTimeSec) / 2;
+    double t = (_est.maxAudioTimeSec + _est.minAudioTimeSec) / 2;
+    double score = -1;
+    const n = 10;
+    while (range > 0.01) {
+      double bestT = 0;
+      double bestScore = -1;
+      for (int i = -n; i <= n; ++i) {
+        final t2 = t + i * range / (n + 1);
+        final score = check(t2);
+        if (score > bestScore) {
+          bestScore = score;
+          bestT = t2;
+        }
+        // TODO: Adjust the score based on how close it is to the estAudioTime?
       }
+      range /= n;
+      t = bestT;
+      score = bestScore;
     }
-    // TODO: return the best;
+    return SearchResult(score, t);
   }
 }
 
-class StrategyResult {
-  VerifierStatus error;
-  Float64List matchedAudio;
-  double audioTimeSec;
+class SearchResult {
+  double score;
+  double t;
+  SearchResult(this.score, this.t);
 }
 
 class _HashCheck {
-  const double minAllowedScore = 0.9;
+  double get minAllowedScore => 0.9;
 
-  double call(double offset) {
+  Uint8List _target;
+  Float64List _possibleChunk;
+  double _chunkStartTimeSec;
+
+  _HashCheck(this._target, this._possibleChunk, this._chunkStartTimeSec);
+
+  double call(double t) {
     // Run the Pipeline and check the hash. Return a score based on how close
     // the match is.
+    // TODO: Avoid rebuilding this every time. It's pretty inefficient, but atm
+    // we don't have a mechanism to reset it, and the chunker is stateful.
+    Uint8List? hashes;
+    void onHashes(int _, Uint64List h) {
+      assert(hashes == null);
+      hashes = Uint8List.sublistView(h);
+    }
+
+    ;
+    final pipeline = Pipeline(
+      onHashes,
+      sampleRate: kSampleRate,
+      chunkSize: kChunkSize,
+      chunkStride: kChunkStride,
+      samplesPerHash: kSamplesPerHash,
+      hashStride: kHashStride,
+      bitsPerHash: kBitsPerHash,
+    );
+    final slice = getAudioSlice(t);
+    //if (slice == null) return -1;
+    pipeline.onDataF64((t * 1000).toInt(), slice!);
+
+    //if (hashes == null) return -1;
+    return _calculateScore(_target, hashes!);
+  }
+
+  static double _calculateScore(Uint8List a, Uint8List b) {
+    //if (a.length != b.length) return -1;
+    assert(a.length == b.length);
+    int sum = 0;
+    for (int i = 0; i < a.length; ++i) {
+      sum += _bitCountUint8(0xFF & ~(a[i] ^ b[i]));
+    }
+    return sum / (8.0 * a.length);
+  }
+
+  static int _bitCountUint8(int x) {
+    x = x - ((x >> 1) & 0x55);
+    x = (x & 0x33) + ((x >> 2) & 0x33);
+    return (x + (x >> 4)) & 0x0F;
+  }
+
+  Float64List? getAudioSlice(double t) {
+    final firstSample = ((t - _chunkStartTimeSec) * _hashSampleRate).toInt();
+    if (firstSample < 0) return null;
+    final lastSample = firstSample + _chunkSize;
+    if (lastSample > _possibleChunk.length) return null;
+    return Float64List.sublistView(_possibleChunk, firstSample, lastSample);
   }
 }
 
@@ -197,7 +270,7 @@ class SafCodeHeader {
   DateTime get time => DateTime.fromMillisecondsSinceEpoch(timeMs, isUtc: true);
 
   static SafCodeHeader? decode(Uint8List code) {
-    if (code.length < Metadata.size()) return null;
+    if (code.length < Metadata.length) return null;
 
     for (int i = 0; i < kMagicString.length; ++i) {
       if (code[i] != kMagicString.codeUnitAt(i)) return null;
@@ -206,7 +279,7 @@ class SafCodeHeader {
     final bytes = code.buffer.asByteData();
     final version = bytes.getUint16(kMagicString.length, Endian.big);
     final algorithm = bytes.getUint16(kMagicString.length + 2, Endian.big);
-    final timeMs = bytes.getUint16(kMagicString.length + 4, Endian.big);
+    final timeMs = bytes.getUint64(kMagicString.length + 4, Endian.big);
     return SafCodeHeader(version, algorithm, timeMs);
   }
 }
@@ -215,6 +288,7 @@ class AudioMatch {
   final Float64List matchedAudio;
   final double relativeLatency;
   final double speed;
+  AudioMatch(this.matchedAudio, this.relativeLatency, this.speed);
 }
 
 class VerifierResult {
@@ -229,6 +303,8 @@ class VerifierResult {
   final AudioMatch? audio;
 
   VerifierResult(this.safCode, this.error, [this.header, this.audio]);
+
+  String toString() => error.toString();
 }
 
 enum VerifierStatus {
@@ -248,7 +324,8 @@ enum VerifierStatus {
   signatureError,
 
   // The hash was out of sequence. Check VerifierResult.header.time. May
-  // indicate a valid edit point. TODO: Should we check the audio hash?
+  // indicate a valid edit point.
+  // TODO: Should we check the audio hash anyway?
   sequenceError,
 
   // The hash doesn't match the audio, or is malformed.
@@ -262,38 +339,36 @@ class _TimingEstimate {
   double minAudioTimeSec;
   double estAudioTimeSec;
   double maxAudioTimeSec;
-  _TimingEstimate(this.minAudioTimeSec, this.estAudioTimeSec, this.maxAudioTimeSec);
+  _TimingEstimate(
+      this.minAudioTimeSec, this.estAudioTimeSec, this.maxAudioTimeSec);
 }
 
 class _TimingEstimator {
-  int _lastCodeTimeMs?;
+  int? _lastCodeTimeMs;
   double _lastAudioTimeSec = 0;
-  double _currentSpeed = 1;  // > 1 means audio is fast.
+  double _currentSpeed = 1; // > 1 means audio is fast.
 
-  const double _speedSmoothingFactor = 0.3;
+  static const double _speedSmoothingFactor = 0.3;
 
   int? get lastCodeTimeMs => _lastCodeTimeMs;
 
   _TimingEstimate estimateAudioTime(int codeTimeMs) {
     final lastCodeTime = _lastCodeTimeMs;
-    if (lastCodeTime == null) return 0;
+    if (lastCodeTime == null) return _TimingEstimate(0, 0, 1);
     final codeDtSec = (codeTimeMs - lastCodeTime) / 1000.0;
     return _TimingEstimate(
-        _lastAudioTimeSec + codeDtSec * _minDetectableSpeed,
-        _lastAudioTimeSec + codeDtSec * _currentSpeed,
-        _lastAudioTimeSec + codeDtSec * _maxDetectableSpeed,
+      _lastAudioTimeSec + codeDtSec * _minDetectableSpeed,
+      _lastAudioTimeSec + codeDtSec * _currentSpeed,
+      _lastAudioTimeSec + codeDtSec * _maxDetectableSpeed,
     );
   }
 
   void setTime(double audioTimeSec, int codeTimeMs) {
     final lastCodeTime = _lastCodeTimeMs;
-    if (lastCodeTime) return;
-    final audioDtSec = audioTimeSec - _lastAudioTimeSec;
-    final codeDtSec = (codeTimeMs - lastCodeTime) / 1000.0;
-    final speed = audioDtSec / codeDtSec;
-    if (_lastCodeTimeMs) {
-      _currentSpeed = speed;
-    } else {
+    if (lastCodeTime != null) {
+      final audioDtSec = audioTimeSec - _lastAudioTimeSec;
+      final codeDtSec = (codeTimeMs - lastCodeTime) / 1000.0;
+      final speed = audioDtSec / codeDtSec;
       _currentSpeed += _speedSmoothingFactor * (speed - _currentSpeed);
     }
     _lastCodeTimeMs = codeTimeMs;

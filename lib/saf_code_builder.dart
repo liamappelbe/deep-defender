@@ -31,14 +31,14 @@ class SafCodeBuilder {
     // [        signable data       ] [signature]
     if (!init) {
       init = true;
-      _buf = Uint8List(_metadata.size() + fingerprint.length + Signer.length);
+      _buf = Uint8List(Metadata.length + fingerprint.length + Signer.length);
       _bytes = _buf.buffer.asByteData();
     }
     _metadata.fill(timeMs, _bytes);
     for (int i = 0; i < fingerprint.length; ++i) {
-      _bytes.setUint8(i + _metadata.size(), fingerprint[i]);
+      _bytes.setUint8(i + Metadata.length, fingerprint[i]);
     }
-    final dataSize = _metadata.size() + fingerprint.length;
+    final dataSize = Metadata.length + fingerprint.length;
     _signer.signInline(_buf, dataSize);
     return _buf;
   }

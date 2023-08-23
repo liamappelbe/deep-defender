@@ -55,16 +55,16 @@ class Signer {
   static const int length = _signatureLengthBytes;
 
   Uint8List sign(Uint8List input) {
-    final s = _signer.sign(input).data;
-    assert(s.length == length);
-    return s;
+    final signature = _signer.sign(input).data;
+    assert(signature.length == length);
+    return signature;
   }
 
   void signInline(Uint8List data, int signatureStart) {
     assert(signatureStart + length == data.length);
-    final s = sign(Uint8List.sublistView(data, 0, signatureStart));
-    for (int i = 0; i < s.length; ++i) {
-      data[i + signatureStart] = s[i];
+    final signature = sign(Uint8List.sublistView(data, 0, signatureStart));
+    for (int i = 0; i < signature.length; ++i) {
+      data[i + signatureStart] = signature[i];
     }
   }
 }

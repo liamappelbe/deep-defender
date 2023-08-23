@@ -19,11 +19,7 @@ import 'const.dart';
 
 // Generates SAF code metadata.
 class Metadata {
-  static const int kSize = kMagicString.length + 2 + 2 + 8;
-
-  int size() {
-    return kSize;
-  }
+  static const int length = kMagicString.length + 2 + 2 + 8;
 
   void fill(int timeMs, ByteData metadata) {
     // [magic string] [version (2)] [algorithm (2)] [time (8)]

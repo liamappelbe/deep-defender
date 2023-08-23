@@ -29,7 +29,6 @@ import 'util.dart';
 class Bucketer {
   final STFT _stft;
   final int _stftStride;
-  final Float64List _audio;
   final Float64List _powers;
   final Uint64List _itr;
   final Function(Float64List) _reportPowers;
@@ -38,7 +37,6 @@ class Bucketer {
   Bucketer(int chunkSize, int stftSize, this._stftStride, int buckets,
       this._reportPowers, this._endChunk)
       : _stft = STFT(stftSize, Window.hanning(stftSize)),
-        _audio = Float64List(chunkSize),
         _powers = Float64List(buckets),
         _itr = logItr(1 + stftSize ~/ 2, buckets);
 
@@ -46,10 +44,9 @@ class Bucketer {
   // is real, so we only care about the first half of the spectrum, because it's
   // conjugate symmetric.
 
-  void onData(int timeMs, Uint16List chunk) {
-    u16ToF64(chunk, _audio);
+  void onData(int timeMs, Float64List chunk) {
     int j = 0;
-    _stft.run(_audio, (Float64x2List freq) {
+    _stft.run(chunk, (Float64x2List freq) {
       int k = 0;
       final a = freq.discardConjugates();
       assert(a.length == _itr.last);
