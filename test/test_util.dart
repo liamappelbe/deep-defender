@@ -28,7 +28,7 @@ void expectClose(List<double> out, List<double> exp, [double delta = 1e-6]) {
 }
 
 void testBucketer(int chunkSize, int stftSize, int stftStride, int buckets,
-    List<int> inp, List<List<double>> exp) {
+    List<double> inp, List<List<double>> exp) {
   List<List<double>> out = [];
   bool ended = false;
   final bucketer = Bucketer(
@@ -45,7 +45,7 @@ void testBucketer(int chunkSize, int stftSize, int stftStride, int buckets,
       ended = true;
     },
   );
-  bucketer.onData(1234, Uint16List.fromList(inp));
+  bucketer.onData(1234, Float64List.fromList(inp));
   expect(ended, isTrue);
   expect(out.length, exp.length);
   for (int i = 0; i < out.length; ++i) {

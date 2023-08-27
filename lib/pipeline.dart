@@ -57,7 +57,8 @@ class Pipeline {
     if ((_buffer?.length ?? 0) < data.length) {
       _buffer = Float64List(2 * data.length);
     }
-    final buffer = Float64List.view(_buffer!.buffer, data.length);
+    final buffer = Float64List.view(
+        _buffer!.buffer, data.length * Float64List.bytesPerElement);
     u16ToF64(data, buffer);
     onDataF64(timeMs, buffer);
   }

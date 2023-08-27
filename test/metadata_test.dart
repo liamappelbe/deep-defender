@@ -19,9 +19,8 @@ import 'package:deep_defender/metadata.dart';
 
 main() {
   test('Metadata filler matches spec', () {
-    final m = Metadata();
-    final buf = Uint8List(m.size());
-    m.fill(0x0123456789ABCDEF, buf.buffer.asByteData());
+    final buf = Uint8List(Metadata.length);
+    Metadata().fill(0x0123456789ABCDEF, buf.buffer.asByteData());
     expect(
         buf,
         equals([

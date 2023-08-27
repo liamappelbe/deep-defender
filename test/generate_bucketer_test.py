@@ -21,7 +21,6 @@ import random
 import os
 
 kNumsPerLine = 4
-kU16sPerLine = 8
 kOutFile = 'bucketer_generated_test.dart';
 
 kPreamble = '''// Copyright 2022 The Deep Defender Authors
@@ -62,31 +61,6 @@ def realBufStr(a):
   i = 0
   while i < len(a):
     j = min(i + kNumsPerLine, len(a))
-    s += '        %s,' % impl(a[i:j])
-    if j < len(a):
-      s += ' //'
-    s += '\n'
-    i = j
-  return s + '      '
-
-def toU16(x):
-  # [-1, 1] -> [0, 2**16)
-  y = int((x + 1) * 0.5 * (2**16 - 1))
-  return 0 if y < 0 else 2**16 - 1 if y >= 2**16 else y
-
-def toReal(x):
-  # [0, 2**16) -> [1, -1]
-  return (x / (2**16 - 1)) * 2 - 1
-
-def u16BufStr(a):
-  def impl(b):
-    return ', '.join(['0x%x' % x for x in b])
-  if len(a) <= kU16sPerLine:
-    return impl(a)
-  s = '\n'
-  i = 0
-  while i < len(a):
-    j = min(i + kU16sPerLine, len(a))
     s += '        %s,' % impl(a[i:j])
     if j < len(a):
       s += ' //'
@@ -140,16 +114,15 @@ def generate(f):
   write(kPreamble)
 
   def makeBucketerCase(chunkSize, stftSize, stftStride, buckets):
-    a = [toU16(randReal(1)) for i in range(chunkSize)]
-    r = [toReal(x) for x in a]
+    a = [randReal(1) for i in range(chunkSize)]
     b = [p for p in
-        bandPowers(windowedChunks(chunks(r, stftSize, stftStride)), buckets)]
+        bandPowers(windowedChunks(chunks(a, stftSize, stftStride)), buckets)]
     write('    testBucketer(')
     write('      %s,' % chunkSize)
     write('      %s,' % stftSize)
     write('      %s,' % stftStride)
     write('      %s,' % buckets)
-    write('      [%s],' % u16BufStr(a))
+    write('      [%s],' % realBufStr(a))
     write('      [')
     for c in b:
       write('      [%s],' % realBufStr(c))
