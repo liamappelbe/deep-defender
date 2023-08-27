@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:deep_defender/const.dart';
 import 'package:deep_defender/crypto.dart';
@@ -38,76 +39,180 @@ class TimedFingerprint {
 List<TimedFingerprint> getHashes(Float64List audio) {
   final allHashes = <TimedFingerprint>[];
   void onHashes(int t, Uint64List h) {
-    allHashes
-        .add(TimedFingerprint(t, Uint8List.fromList(Uint8List.sublistView(h))));
-  }
-
-  ;
+    allHashes.add(TimedFingerprint(
+        t, Uint8List.fromList(Uint8List.sublistView(h))));
+  };
   final pipeline = Pipeline(
-    onHashes,
-    sampleRate: kSampleRate,
-    chunkSize: kChunkSize,
-    chunkStride: kChunkStride,
-    samplesPerHash: kSamplesPerHash,
-    hashStride: kHashStride,
-    bitsPerHash: kBitsPerHash,
+      onHashes,
+      sampleRate: kSampleRate,
+      chunkSize: kChunkSize,
+      chunkStride: kChunkStride,
+      samplesPerHash: kSamplesPerHash,
+      hashStride: kHashStride,
+      bitsPerHash: kBitsPerHash,
   );
   pipeline.onDataF64(0, audio);
-  final flushTimeMs =
-      ((kChunkStride - (audio.length % kChunkStride)) * 1000 / kSampleRate)
-          .ceil();
+  final flushTimeMs = ((kChunkStride - (audio.length % kChunkStride)) * 1000 / kSampleRate).ceil();
   pipeline.flush(flushTimeMs);
   return allHashes;
 }
 
 List<Uint8List> getSafCodes(List<TimedFingerprint> h, Signer s) {
   final scb = SafCodeBuilder(Metadata(), s);
-  return h
-      .map((th) => Uint8List.fromList(scb.generate(th.timeMs, th.fingerprint)))
-      .toList();
+  return h.map((th) => Uint8List.fromList(scb.generate(th.timeMs, th.fingerprint))).toList();
+}
+
+runTest({
+  Float64List Function(Float64List)? tweakAudio,
+  List<Uint8List> Function(List<Uint8List>)? tweakSafCodes,
+  Function(Wav, List<VerifierResult>)? verifyResults,
+}) async {
+  final wav = await getTestWav();
+  final rawaudio = wav.toMono();
+  final audio = tweakAudio?.call(rawaudio) ?? rawaudio;
+  expect(wav.samplesPerSecond, kSampleRate);
+
+  final keyPair = KeyPair.fromJwk(kTestKey);
+  final signer = keyPair.privateKey.signer();
+  final rawSafCodes = getSafCodes(getHashes(audio), signer);
+  final allSafCodes = tweakSafCodes?.call(rawSafCodes) ?? rawSafCodes;
+
+  final results = <VerifierResult>[];
+  void onResult(VerifierResult result) {
+    results.add(result);
+  }
+  final verifier = SafCodeVerifier(
+      keyPair.publicKey, wav.samplesPerSecond, onResult);
+  await verifier.addAudio(wav.toMono());
+  for (final code in allSafCodes) await verifier.addSafCode(code);
+
+  expect(results.length, allSafCodes.length);
+  verifyResults?.call(wav, results);
+}
+
+debugWav(Float64List audio) {
+  Wav([audio], kSampleRate).writeFile('debug.wav');
 }
 
 main() async {
-  test('Verifier ok', () async {
-    final wav = await getTestWav();
-    final audio = wav.toMono();
-    expect(wav.samplesPerSecond, kSampleRate);
+  test('Verifier ok when no change', () => runTest(
+    verifyResults: (Wav wav, List<VerifierResult> results) {
+      final audioLenMs = (wav.duration * 1000).toInt();
+      for (int i = 0; i < results.length; ++i) {
+        final result = results[i];
+        expect(result.error, VerifierStatus.ok);
+        expect(result.header!.version, kVersion);
+        expect(result.header!.algorithm, kAlgorithmId);
+        final j = i * kChunkStride + kChunkSize;
+        expect(result.header!.timeMs,
+            (-audioLenMs + (j * 1000.0 / kSampleRate)).toInt());
+      }
+    },
+  ));
 
-    final keyPair = KeyPair.fromJwk(kTestKey);
-    final signer = keyPair.privateKey.signer();
-    final allSafCodes = getSafCodes(getHashes(audio), signer);
+  test('Verifier ok when volume decreases', () => runTest(
+    tweakAudio: (Float64List audio) {
+      for (int i = 0; i < audio.length; ++i) {
+        audio[i] *= 0.1;
+      }
+      return audio;
+    },
+    verifyResults: (_, List<VerifierResult> results) {
+      for (final result in results) {
+        expect(result.error, VerifierStatus.ok);
+      }
+    },
+  ));
 
-    final results = <VerifierResult>[];
-    void onResult(VerifierResult result) {
-      results.add(result);
-    }
+  test('Verifier ok when volume increases', () => runTest(
+    tweakAudio: (Float64List audio) {
+      for (int i = 0; i < audio.length; ++i) {
+        audio[i] *= 10;
+      }
+      return audio;
+    },
+    verifyResults: (_, List<VerifierResult> results) {
+      for (final result in results) {
+        expect(result.error, VerifierStatus.ok);
+      }
+    },
+  ));
 
-    final verifier =
-        SafCodeVerifier(keyPair.publicKey, wav.samplesPerSecond, onResult);
-    await verifier.addAudio(wav.toMono());
-    for (final code in allSafCodes) await verifier.addSafCode(code);
+  test('Verifier ok when volume increases and clips', () => runTest(
+    tweakAudio: (Float64List audio) {
+      for (int i = 0; i < audio.length; ++i) {
+        // Increasing this to 3 breaks the hash, even though it's still audibly
+        // pretty much the same. The hash is too sensitive to this distortion.
+        audio[i] *= 2.5;
+        if (audio[i] < -1) audio[i] = -1;
+        if (audio[i] > 1) audio[i] = 1;
+      }
+      return audio;
+    },
+    verifyResults: (_, List<VerifierResult> results) {
+      for (final result in results) {
+        expect(result.error, VerifierStatus.ok);
+      }
+    },
+  ));
 
-    final audioLenMs = (wav.duration * 1000).toInt();
-    expect(results.length, allSafCodes.length);
-    for (int i = 0; i < results.length; ++i) {
-      final result = results[i];
-      expect(result.error, VerifierStatus.ok);
-      expect(result.header!.version, kVersion);
-      expect(result.header!.algorithm, kAlgorithmId);
-      expect(
-          result.header!.timeMs,
-          (-audioLenMs +
-                  ((i * kChunkStride + kChunkSize) * 1000.0 / kSampleRate))
-              .toInt());
-    }
-  });
+  test('Verifier ok when some noise', () => runTest(
+    tweakAudio: (Float64List audio) {
+      final rand = Random();
+      for (int i = 0; i < audio.length; ++i) {
+        audio[i] += (rand.nextDouble() - 0.5) * 0.03;
+      }
+      return audio;
+    },
+    verifyResults: (_, List<VerifierResult> results) {
+      for (final result in results) {
+        expect(result.error, VerifierStatus.ok);
+      }
+    },
+  ));
+
+  test('Verifier ok when low pass filtered', () => runTest(
+    tweakAudio: (Float64List audio) {
+      double x = 0;
+      for (int i = 0; i < audio.length; ++i) {
+        x += 0.1 * (audio[i] - x);
+        audio[i] = 2 * x;
+      }
+      debugWav(audio);
+      return audio;
+    },
+    verifyResults: (_, List<VerifierResult> results) {
+      for (final result in results) {
+        expect(result.error, VerifierStatus.ok);
+      }
+    },
+  ));
+
+  test('Verifier ok when high pass filtered', () => runTest(
+    tweakAudio: (Float64List audio) {
+      final out = Float64List(audio.length);
+      for (int i = 1; i < audio.length; ++i) {
+        out[i] = 0.1 * (out[i - 1] + audio[i] - audio[i - 1]);
+      }
+      for (int i = 0; i < out.length; ++i) {
+        out[i] *= 30;
+      }
+      return out;
+    },
+    verifyResults: (_, List<VerifierResult> results) {
+      for (final result in results) {
+        expect(result.error, VerifierStatus.ok);
+      }
+    },
+  ));
 
   // Tests that should return ok:
-  //  - no changes to input
-  //  - change in volume
-  //  - some noise
-  //  - random filtering
-  //  - clipping
+  //  ✓ no changes to input
+  //  ✓ change in volume
+  //  ✓ clipping
+  //  ✓ some noise
+  //  ✓ low pass filter
+  //  ✓ high pass filter
   //  - positive time offset
   //  - negative time offset
   //  - small speed up
