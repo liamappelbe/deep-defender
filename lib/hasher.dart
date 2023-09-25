@@ -16,6 +16,7 @@ import 'dart:typed_data';
 
 import 'package:fftea/fftea.dart';
 
+import 'const.dart';
 import 'util.dart';
 
 // Receives a stream frequency buckets. Yields a stream of hashes.
@@ -25,10 +26,12 @@ import 'util.dart';
 class Hasher {
   final Uint64List _hashes;
   final Float64List _prevPow_dF;
-  final Function(int, Uint64List) _reportHashes;
+  final Function(int, Float64List, Uint64List) _reportHashes;
 
   static const kReset = -1;
   int _k = kReset;
+
+  static bool debug = false;
 
   Hasher(int bitsPerHash, int hashesPerChunk, this._reportHashes)
       : _hashes = Uint64List(hashesPerChunk),
@@ -36,6 +39,8 @@ class Hasher {
 
   void onData(Float64List powers) {
     assert(powers.length == _prevPow_dF.length + 1);
+    //_clean(powers);
+    //if (debug) print(powers);
     int h = 0;
     for (int i = 0; i < _prevPow_dF.length; ++i) {
       final pow_dF = powers[i + 1] - powers[i];
@@ -52,9 +57,17 @@ class Hasher {
     ++_k;
   }
 
-  void endChunk(int timeMs) {
+  void _clean(Float64List powers) {
+    for (int i = 0; i < powers.length; ++i) {
+      if (powers[i] < kMinBucketPower) {
+        powers[i] = 0;
+      }
+    }
+  }
+
+  void endChunk(int timeMs, Float64List audio) {
     assert(_k == _hashes.length);
-    _reportHashes(timeMs, _hashes);
+    _reportHashes(timeMs, audio, _hashes);
     _k = kReset;
   }
 }

@@ -15,6 +15,49 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'const.dart';
+
+// Returns x such that f(X) = y and abs(X - x) < dx
+// That is, the solution of f(x) = y, to an accuracy of dx. Assumes f is:
+//  - Monotonic
+//  - Continuous
+//  - Defined for all x
+//  - Has some x where f(x) = y
+double solve(double Function(double) f, {double y = 0, double dx = 1e-9}) {
+  double x0 = 0;
+  double x1 = 1;
+  double y0 = f(x0);
+  double y1 = f(x1);
+  if (y0 >= y1) {
+    final x2 = x0;
+    x0 = x1;
+    x1 = x2;
+    final y2 = y0;
+    y0 = y1;
+    y1 = y2;
+  }
+  while (y0 >= y) {
+    x0 = 2 * x0 - x1;
+    y0 = f(x0);
+  }
+  while (y1 <= y) {
+    x1 = 2 * x1 - x0;
+    y1 = f(x1);
+  }
+  while ((x1 - x0).abs() >= dx) {
+    final x2 = (x0 + x1) / 2;
+    final y2 = f(x2);
+    if (y2 > y) {
+      x1 = x2;
+      y1 = y2;
+    } else {
+      x0 = x2;
+      y0 = y2;
+    }
+  }
+  return (x0 + x1) / 2;
+}
+
 Uint64List logItr(int end, int steps) {
   final a = Uint64List(steps);
   for (int i = 1; i < steps; ++i) {
@@ -24,25 +67,31 @@ Uint64List logItr(int end, int steps) {
   return a;
 }
 
-// TODO: Test this.
-void u16ToF64(Uint16List a, Float64List b) {
+Uint64List logLinItr(int end, int steps, {double grad0 = 1}) {
+  double eqn(double w) => math.exp(w * steps) + (grad0 - w) * steps - 1;
+  final w = solve(eqn, y: end.toDouble());
+  final g = grad0 - w;
+  final a = Uint64List(steps);
+  for (int i = 1; i < steps; ++i) {
+    a[i - 1] = (math.exp(w * i) + g * i - 1).toInt();
+  }
+  a[steps - 1] = end;
+  return a;
+}
+
+double clamp(double x, double lo, double hi) => x < lo ? lo : x > hi ? hi : x;
+
+void micDataToF64(MicData a, Float64List b) {
   assert(b.length == a.length);
   for (int i = 0; i < a.length; ++i) {
-    b[i] = (a[i].toDouble() / ((1 << 15) - 0.5)) - 1.0;
+    b[i] = a[i];
   }
 }
 
-// TODO: Test this.
-void f64ToU16(Float64List a, Uint16List b) {
-  assert(b.length == a.length);
-  final scale = 1 << 15;
-  final limit = (1 << 16) - 1;
-  for (int i = 0; i < a.length; ++i) {
-    final x = ((a[i] + 1) * scale).floor();
-    b[i] = x < 0
-        ? 0
-        : x > limit
-            ? limit
-            : x;
+double rmsVolume(Float64List a) {
+  double sum = 0;
+  for (final x in a) {
+    sum += x * x;
   }
+  return math.sqrt(sum / a.length);
 }

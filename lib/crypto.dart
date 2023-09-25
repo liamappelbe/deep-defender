@@ -38,6 +38,9 @@ _KeyPairImpl _generateKeyPair() => _KeyPairImpl.generateEc(_ecCurve);
 class PublicKey {
   final _PublicKeyImpl _key;
   PublicKey._(this._key);
+  static PublicKey fromJwk(String jwk) => PublicKey._(
+      _KeyPairImpl.fromJwk(jsonDecode(jwk) as Map<String, dynamic>).publicKey
+          as _PublicKeyImpl);
   Verifier verifier() => Verifier(_key.createVerifier(_signingAlgorithm));
 }
 
@@ -113,4 +116,4 @@ class KeyPair {
   }
 }
 
-String _bigIntToBase64(BigInt x) => base64UrlEncode(encodeBigInt(x));
+String _bigIntToBase64(BigInt x) => base64Url.encode(encodeBigInt(x));

@@ -12,18 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:typed_data';
+
 const String kMagicString = "SAF";
-const int kVersion = 0;
-const int kAlgorithmId = 0;
+const int kVersion = 1;
+const int kAlgorithmId = 1;
 
 const int kSampleRate = 16000;
 const double kChunkOverlapFrac = 0.5;
 const int kHashesPerChunk = 12;
 const int kBitsPerHash = 64;
 const double kHashOverlapFrac = 0.5;
+const double kMinChunkRms = 1e-2;
+const double kMinBucketPower = 1e-3;
 const int kSamplesPerHash = 4096; // Must be a power of two.
 // TODO: Is it still true that ^ must be a power of 2?
 
 final int kHashStride = (kSamplesPerHash * (1 - kHashOverlapFrac)).floor();
 final int kChunkSize = kHashesPerChunk * kHashStride + kSamplesPerHash;
 final int kChunkStride = (kChunkSize * (1 - kChunkOverlapFrac)).floor();
+
+typedef MicData = Float32List;  // TODO: What type is this?

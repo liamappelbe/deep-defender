@@ -15,15 +15,18 @@
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr/qr.dart';
 
 import 'const.dart';
 import 'crypto.dart';
+import 'debug_file.dart';
 import 'metadata.dart';
 import 'microphone.dart';
 import 'pipeline.dart';
 import 'saf_code_builder.dart';
+import 'util.dart';
 
 /// Connects a Microphone to a SafCodeBuilder etc running in a separate Isolate.
 ///
@@ -33,6 +36,8 @@ import 'saf_code_builder.dart';
 ///                       \                                       /
 /// Defender isolate:   Chunker -> Bucketer -> Hasher -> SafCodeBuilder
 ///                      `----- aka Pipeline ------'
+// TODO: We have BackgroundIsolateBinaryMessenger now, so move the mic to the
+// defender isolate.
 class Defender {
   final void Function(int, QrCode) _setQr;
   final Future<PrivateKey> _privateKey;
@@ -43,7 +48,8 @@ class Defender {
 
   Defender(this._setQr, this._privateKey) {
     _recv.listen(_onMessage);
-    _isolate = Isolate.spawn(defenderIsolateMain, _recv.sendPort);
+    final rootToken = RootIsolateToken.instance!;
+    _isolate = Isolate.spawn(defenderIsolateMain, [_recv.sendPort, rootToken]);
     _microphone = Microphone.mic(_updateCode);
   }
 
@@ -57,18 +63,20 @@ class Defender {
     }
   }
 
-  void _updateCode(int timeMs, Uint16List audio) {
+  void _updateCode(int timeMs, MicData audio) {
     _send?.send(AudioMessage(timeMs, audio));
   }
 }
 
-void defenderIsolateMain(SendPort port) {
-  DefenderIsolate(port);
+void defenderIsolateMain(List args) {
+  BackgroundIsolateBinaryMessenger.ensureInitialized(
+      args[1] as RootIsolateToken);
+  DefenderIsolate(args[0] as SendPort);
 }
 
 class AudioMessage {
   int timeMs;
-  Uint16List audio;
+  MicData audio;
   AudioMessage(this.timeMs, this.audio);
 }
 
@@ -108,11 +116,17 @@ class DefenderIsolate {
     }
   }
 
-  void _onHashes(int timeMs, Uint64List hashes) {
+  void _onHashes(int timeMs, Float64List audio, Uint64List hashes) {
     if (_codeBuilder == null) return;
-    final data = _codeBuilder!.generate(timeMs, hashes.buffer.asUint8List());
+
+    final volume = rmsVolume(audio);
+    final safCode = _codeBuilder!.generate(
+        timeMs, volume, hashes.buffer.asUint8List());
+
+    DebugFile.save(audio, safCode);
+
     final qr = QrCode.fromUint8List(
-        data: data, errorCorrectLevel: QrErrorCorrectLevel.L);
+        data: safCode, errorCorrectLevel: QrErrorCorrectLevel.L);
     _send.send(QrMessage(timeMs, qr));
   }
 }

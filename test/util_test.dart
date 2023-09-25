@@ -21,4 +21,15 @@ main() {
     expect(logItr(100, 3), [4, 21, 100]);
     expect(logItr(100, 10), [1, 2, 3, 6, 10, 15, 25, 39, 63, 100]);
   });
+
+  test('solve', () {
+    double cube(double x) => x * x * x;
+    expect(solve(cube, y: 0.5, dx: 1e-3), closeTo(0.7937, 1e-3));
+    expect(solve(cube, y: 1000, dx: 1e-3), closeTo(10, 1e-3));
+    expect(solve(cube, y: -1000, dx: 1e-3), closeTo(-10, 1e-3));
+    double negcube(double x) => -x * x * x;
+    expect(solve(negcube, y: 0.5, dx: 1e-3), closeTo(-0.7937, 1e-3));
+    expect(solve(negcube, y: 1000, dx: 1e-3), closeTo(-10, 1e-3));
+    expect(solve(negcube, y: -1000, dx: 1e-3), closeTo(10, 1e-3));
+  });
 }

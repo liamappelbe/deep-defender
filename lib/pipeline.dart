@@ -39,7 +39,7 @@ class Pipeline {
   Float64List? _buffer;
 
   Pipeline(
-    Function(int, Uint64List) reportHashes, {
+    Function(int, Float64List, Uint64List) reportHashes, {
     required this.sampleRate,
     required this.chunkSize,
     required this.chunkStride,
@@ -53,13 +53,13 @@ class Pipeline {
     _chunker = Chunker(sampleRate, chunkSize, chunkStride, _bucketer.onData);
   }
 
-  void onData(int timeMs, Uint16List data) {
+  void onData(int timeMs, MicData data) {
     if ((_buffer?.length ?? 0) < data.length) {
       _buffer = Float64List(2 * data.length);
     }
     final buffer = Float64List.view(
         _buffer!.buffer, data.length * Float64List.bytesPerElement);
-    u16ToF64(data, buffer);
+    micDataToF64(data, buffer);
     onDataF64(timeMs, buffer);
   }
 
