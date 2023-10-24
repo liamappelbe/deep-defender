@@ -20,7 +20,7 @@ import 'package:deep_defender/metadata.dart';
 main() {
   test('Metadata filler matches spec', () {
     final buf = Uint8List(Metadata.length);
-    Metadata().fill(0x0123456789ABCDEF, buf.buffer.asByteData());
+    Metadata().fill(0x0123456789ABCDEF, 0.123, buf.buffer.asByteData());
     expect(
         buf,
         equals([
@@ -36,7 +36,11 @@ main() {
           0x89,
           0xAB,
           0xCD,
-          0xEF
+          0xEF,
+          0x1F,
+          0x7C,
+          0xED,
+          0x91,
         ]));
   });
 }

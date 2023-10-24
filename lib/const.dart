@@ -32,4 +32,4 @@ final int kHashStride = (kSamplesPerHash * (1 - kHashOverlapFrac)).floor();
 final int kChunkSize = kHashesPerChunk * kHashStride + kSamplesPerHash;
 final int kChunkStride = (kChunkSize * (1 - kChunkOverlapFrac)).floor();
 
-typedef MicData = Float32List;  // TODO: What type is this?
+typedef MicData = Float32List;

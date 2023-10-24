@@ -1,4 +1,4 @@
-# Copyright 2022 The fftea authors
+# Copyright 2023 The Deep Defender Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,15 +15,14 @@
 # Generate bucketer_generated_test.dart:
 #   python3 test/generate_bucketer_test.py
 
-import numpy
-import math
-import random
 import os
+
+from generator_utils import *
 
 kNumsPerLine = 4
 kOutFile = 'bucketer_generated_test.dart';
 
-kPreamble = '''// Copyright 2022 The Deep Defender Authors
+kPreamble = '''// Copyright 2023 The Deep Defender Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,39 +45,6 @@ import 'package:deep_defender/bucketer.dart';
 import 'test_util.dart';
 
 main() {'''
-
-random.seed(234875623)
-
-def randReal(r):
-  return random.uniform(-r, r)
-
-def realBufStr(a):
-  def impl(b):
-    return ', '.join(['%.8f' % x for x in b])
-  if len(a) <= kNumsPerLine:
-    return impl(a)
-  s = '\n'
-  i = 0
-  while i < len(a):
-    j = min(i + kNumsPerLine, len(a))
-    s += '        %s,' % impl(a[i:j])
-    if j < len(a):
-      s += ' //'
-    s += '\n'
-    i = j
-  return s + '      '
-
-def cplxBufStr(a):
-  b = []
-  for z in a:
-    b.append(numpy.real(z))
-    b.append(numpy.imag(z))
-  return realBufStr(b)
-
-def logItr(f, n):
-  for i in range(1, n):
-    yield int(math.pow(f, i * 1.0 / n))
-  yield f
 
 def chunks(data, size, step):
   i = 0
@@ -103,7 +69,7 @@ def bandPowers(windowedChunkItr, numBands):
     y = []
     f = numpy.fft.rfft(wc)
     i = 0
-    for j in logItr(len(f), numBands):
+    for j in logLinItr(len(f), numBands, 3):
       y.append(sum([numpy.absolute(f[k]) ** 2 for k in range(i, j)]))
       i = j
     yield y

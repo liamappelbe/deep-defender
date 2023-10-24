@@ -20,6 +20,7 @@ import 'package:deep_defender/crypto.dart';
 import 'package:deep_defender/metadata.dart';
 import 'package:deep_defender/pipeline.dart';
 import 'package:deep_defender/saf_code_builder.dart';
+import 'package:deep_defender/util.dart';
 import 'package:deep_defender/verifier.dart';
 import 'package:test/test.dart';
 import 'package:wav/wav.dart';
@@ -34,18 +35,18 @@ Future<Wav> getTestWav([String filename = 'test/test.wav']) async =>
 
 class TimedFingerprint {
   int timeMs;
+  Float64List chunk;
   Uint8List fingerprint;
-  TimedFingerprint(this.timeMs, this.fingerprint);
+  TimedFingerprint(this.timeMs, this.chunk, this.fingerprint);
 }
 
 List<TimedFingerprint> getHashes(Float64List audio) {
   final allHashes = <TimedFingerprint>[];
-  void onHashes(int t, _, Uint64List h) {
+  void onHashes(int t, Float64List chunk, Uint64List h) {
     allHashes
-        .add(TimedFingerprint(t, Uint8List.fromList(Uint8List.sublistView(h))));
+        .add(TimedFingerprint(t, chunk, Uint8List.fromList(Uint8List.sublistView(h))));
   }
 
-  ;
   final pipeline = Pipeline(
     onHashes,
     sampleRate: kSampleRate,
@@ -66,7 +67,7 @@ List<TimedFingerprint> getHashes(Float64List audio) {
 List<Uint8List> getSafCodes(List<TimedFingerprint> h, Signer s) {
   final scb = SafCodeBuilder(Metadata(), s);
   return h
-      .map((th) => Uint8List.fromList(scb.generate(th.timeMs, th.fingerprint)))
+      .map((th) => Uint8List.fromList(scb.generate(th.timeMs, rmsVolume(th.chunk), th.fingerprint)))
       .toList();
 }
 

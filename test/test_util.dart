@@ -15,6 +15,7 @@
 import 'dart:typed_data';
 
 import 'package:deep_defender/bucketer.dart';
+import 'package:deep_defender/const.dart';
 import 'package:deep_defender/pipeline.dart';
 import 'package:deep_defender/util.dart';
 import 'package:test/test.dart';
@@ -40,7 +41,7 @@ void testBucketer(int chunkSize, int stftSize, int stftStride, int buckets,
       expect(ended, isFalse);
       out.add(powers.sublist(0));
     },
-    (timeMs) {
+    (timeMs, chunk) {
       expect(timeMs, 1234);
       ended = true;
     },
@@ -63,11 +64,10 @@ Future<void> testPipeline(
     List<List<int>> expectedHashes) async {
   final wav = await Wav.readFile('test/$filename');
   final audio = wav.toMono();
-  final data = Uint16List(audio.length);
-  f64ToU16(audio, data);
+  final data = MicData.fromList(audio);
   final actualHashes = <Uint64List>[];
   final pipeline = Pipeline(
-    (int timeMs, Uint64List hashes) {
+    (int timeMs, Float64List chunk, Uint64List hashes) {
       // TODO: Test timeMs.
       actualHashes.add(hashes.sublist(0));
     },

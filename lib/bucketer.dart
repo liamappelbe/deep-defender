@@ -42,7 +42,6 @@ class Bucketer {
       this._reportPowers, this._endChunk)
       : _stft = _STFT(stftSize, Window.hanning(stftSize)),
         _powers = Float64List(buckets),
-        //_itr = logItr(1 + stftSize ~/ 2, buckets);
         _itr = logLinItr(1 + stftSize ~/ 2, buckets, grad0: 3);
 
   void onData(int timeMs, Float64List chunk) {
