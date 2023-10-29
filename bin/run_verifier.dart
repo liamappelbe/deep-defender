@@ -67,14 +67,15 @@ main(List<String> args) async {
   final safCodes = parseSafCodes(await File(args[1]).readAsString());
   print('Loaded ${safCodes.length} SAF codes');
   final firstCodeTimeSec = safCodes[0].timeMs / 1000.0;
-  final audioStartTimeSec = 0;//max(0, firstCodeTimeSec);
+  final audioStartTimeSec = max(0, firstCodeTimeSec - 2);
   final audioStartSample = (audioStartTimeSec * kSampleRate).toInt();
   final truncatedAudio = Float64List.sublistView(audio, audioStartSample);
 
   final publicKey = PublicKey.fromJwk(await File(args[2]).readAsString());
 
   final verifier = SafCodeVerifier(publicKey, (VerifierResult result) {
-    print("${result.error} ${result.header?.time}");
+    print("${result.error}\t${result.score}\t${result.header?.time}");
+    //print("${result.header?.volume},${result.score}");
   });
   await verifier.addAudio(truncatedAudio);
   for (final tsc in safCodes) {

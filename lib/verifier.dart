@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import 'dart:collection';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:wav/util.dart';
 
@@ -83,13 +84,13 @@ class SafCodeVerifier {
     // Decode the next SAF code.
     final header = SafCodeHeader.decode(safCode);
     if (header == null) {
-      return VerifierResult(safCode, VerifierStatus.codeError);
+      return VerifierResult(safCode, VerifierStatus.codeError, 0);
     }
     if (header.version != kVersion) {
-      return VerifierResult(safCode, VerifierStatus.versionError, header);
+      return VerifierResult(safCode, VerifierStatus.versionError, 0, header);
     }
     if (header.algorithm != kAlgorithmId) {
-      return VerifierResult(safCode, VerifierStatus.algorithmError, header);
+      return VerifierResult(safCode, VerifierStatus.algorithmError, 0, header);
     }
 
     // Check that the signature matches.
@@ -97,17 +98,19 @@ class SafCodeVerifier {
     final headerAndHash = Uint8List.sublistView(safCode, 0, split);
     final sig = Uint8List.sublistView(safCode, split);
     if (!_verifier.verify(headerAndHash, sig)) {
-      return VerifierResult(safCode, VerifierStatus.signatureError, header);
+      return VerifierResult(safCode, VerifierStatus.signatureError, 0, header);
     }
 
     // Check that the hash is in sequence. That is, we didn't get one from the
     // past or the future.
+    // TODO: Should we be checking the timestamp vs the time that the SAF code
+    // appeared in the video?
     final lastCodeTimeMs = _timingEstimator.lastCodeTimeMs;
     if (lastCodeTimeMs != null) {
       final deltaCodeTimeMs = header.timeMs - lastCodeTimeMs;
       if (deltaCodeTimeMs < _minTimeBetweenHashesMs ||
           deltaCodeTimeMs > _maxTimeBetweenHashesMs) {
-        return VerifierResult(safCode, VerifierStatus.sequenceError, header);
+        return VerifierResult(safCode, VerifierStatus.sequenceError, 0, header);
       }
     }
 
@@ -130,8 +133,8 @@ class SafCodeVerifier {
     // Update the timing estimator.
     _timingEstimator.setTime(audioTimeSec, header.timeMs);
 
-    if (searchResult.score < hashCheck.minAllowedScore) {
-      return VerifierResult(safCode, VerifierStatus.hashError, header);
+    if (searchResult.score < hashCheck.minAllowedScore(header.volume)) {
+      return VerifierResult(safCode, VerifierStatus.hashError, searchResult.score, header);
     }
     final matchedAudio = hashCheck.getAudioSlice(searchResult.t)!;
     final relativeLatency = audioTimeSec - (est.estAudioTimeSec ?? 0);
@@ -141,13 +144,13 @@ class SafCodeVerifier {
     // Check for speed errors.
     if (speed < _minAllowedSpeed || speed > _maxAllowedSpeed) {
       //print("Speed error: $speed");
-      return VerifierResult(safCode, VerifierStatus.speedError, header);
+      return VerifierResult(safCode, VerifierStatus.speedError, searchResult.score, header);
     }
 
     // TODO(ZXCV): Drop data from the audio buffer and update the audio index.
 
     // Report result.
-    return VerifierResult(safCode, VerifierStatus.ok, header, audioMatch);
+    return VerifierResult(safCode, VerifierStatus.ok, searchResult.score, header, audioMatch);
   }
 
   int get _minAudioCodeSize {
@@ -199,7 +202,7 @@ class _CheckingStrategy {
       t = bestT;
       finalScore = bestHashScore;
     }
-    print('    $t -> $finalScore');
+    //print('    $t -> $finalScore');
     //Bucketer.debug = true;Hasher.debug = true;
     //check(t);
     //Bucketer.debug = false;Hasher.debug = false;
@@ -214,7 +217,7 @@ class SearchResult {
 }
 
 class _HashCheck {
-  double get minAllowedScore => 0.7;
+  double minAllowedScore(double volume) => min(0.45 + 10 * volume, 0.8);
 
   Uint8List _target;
   Float64List _possibleChunk;
@@ -316,8 +319,8 @@ class AudioMatch {
 
 class VerifierResult {
   final Uint8List safCode;
-
   final VerifierStatus error;
+  final double score;
 
   // Present for any error except codeError.
   final SafCodeHeader? header;
@@ -325,7 +328,7 @@ class VerifierResult {
   // Present only if error is ok or speedError
   final AudioMatch? audio;
 
-  VerifierResult(this.safCode, this.error, [this.header, this.audio]);
+  VerifierResult(this.safCode, this.error, this.score, [this.header, this.audio]);
 
   String toString() => error.toString();
 }
