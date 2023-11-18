@@ -19,6 +19,7 @@ import wave
 
 kNumsPerLine = 4
 kU64sPerLine = 3
+kU8sPerLine = 11
 
 random.seed(234875623)
 
@@ -49,14 +50,20 @@ def realBufStr(a):
   return s + '      '
 
 def u64BufStr(a):
+  return uintBufStr(a, kU64sPerLine)
+
+def u8BufStr(a):
+  return uintBufStr(a, kU8sPerLine)
+
+def uintBufStr(a, perLine):
   def impl(b):
     return ', '.join(['0x%x' % x for x in b])
-  if len(a) <= kU64sPerLine:
+  if len(a) <= perLine:
     return impl(a)
   s = '\n'
   i = 0
   while i < len(a):
-    j = min(i + kU64sPerLine, len(a))
+    j = min(i + perLine, len(a))
     s += '        %s,' % impl(a[i:j])
     if j < len(a):
       s += ' //'

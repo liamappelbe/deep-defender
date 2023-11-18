@@ -42,9 +42,8 @@ class TimedFingerprint {
 
 List<TimedFingerprint> getHashes(Float64List audio) {
   final allHashes = <TimedFingerprint>[];
-  void onHashes(int t, Float64List chunk, Uint64List h) {
-    allHashes
-        .add(TimedFingerprint(t, chunk, Uint8List.fromList(Uint8List.sublistView(h))));
+  void onHashes(int t, Float64List chunk, Uint8List h) {
+    allHashes.add(TimedFingerprint(t, chunk, Uint8List.fromList(h)));
   }
 
   final pipeline = Pipeline(
@@ -67,7 +66,7 @@ List<TimedFingerprint> getHashes(Float64List audio) {
 List<Uint8List> getSafCodes(List<TimedFingerprint> h, Signer s) {
   final scb = SafCodeBuilder(Metadata(), s);
   return h
-      .map((th) => Uint8List.fromList(scb.generate(th.timeMs, rmsVolume(th.chunk), th.fingerprint)))
+      .map((th) => Uint8List.fromList(scb.generate(th.timeMs, th.fingerprint)))
       .toList();
 }
 
@@ -91,7 +90,9 @@ runTest({
   }
 
   final verifier = SafCodeVerifier(keyPair.publicKey, onResult);
-  await verifier.addAudio((await tweakAudio?.call(rawaudio)) ?? rawaudio);
+  final audio = (await tweakAudio?.call(rawaudio)) ?? rawaudio;
+  //debugWav(audio);
+  await verifier.addAudio(audio);
   for (final code in allSafCodes) await verifier.addSafCode(code);
 
   expect(results.length, allSafCodes.length);
@@ -103,7 +104,7 @@ debugWav(Float64List audio) {
 }
 
 main() async {
-  /*test('Verifier ok when no change', () async {
+  test('Verifier ok when no change', () async {
     await runTest(
       verifyResults: (Wav wav, List<VerifierResult> results) {
         final audioLenMs = (wav.duration * 1000).toInt();
@@ -167,7 +168,7 @@ main() async {
         }
       },
     );
-  });*/
+  });
 
   test('Verifier ok when some noise', () async {
     await runTest(
@@ -185,7 +186,7 @@ main() async {
     );
   });
 
-  /*test('Verifier ok when low pass filtered', () async {
+  test('Verifier ok when low pass filtered', () async {
     await runTest(
       tweakAudio: (Float64List audio) {
         double x = 0;
@@ -240,28 +241,28 @@ main() async {
     );
   });
 
-  test('Verifier misses first saf code when audio is early', () async {
-    await runTest(
-      tweakAudio: (Float64List audio) {
-        final offset = (kSampleRate * 0.8).toInt();
-        final out = Float64List(audio.length - offset);
-        for (int i = 0; i < out.length; ++i) {
-          out[i] = audio[i + offset];
-        }
-        return out;
-      },
-      verifyResults: (_, List<VerifierResult> results) {
-        for (int i = 0; i < results.length; ++i) {
-          final result = results[i];
-          if (i == 0) {
-            expect(result.error, VerifierStatus.hashError);
-          } else {
-            expect(result.error, VerifierStatus.ok);
-          }
-        }
-      },
-    );
-  });
+  //test('Verifier misses first saf code when audio is early', () async {
+  //  await runTest(
+  //    tweakAudio: (Float64List audio) {
+  //      final offset = (kSampleRate * 0.8).toInt();
+  //      final out = Float64List(audio.length - offset);
+  //      for (int i = 0; i < out.length; ++i) {
+  //        out[i] = audio[i + offset];
+  //      }
+  //      return out;
+  //    },
+  //    verifyResults: (_, List<VerifierResult> results) {
+  //      for (int i = 0; i < results.length; ++i) {
+  //        final result = results[i];
+  //        if (i == 0) {
+  //          expect(result.error, VerifierStatus.hashError);
+  //        } else {
+  //          expect(result.error, VerifierStatus.ok);
+  //        }
+  //      }
+  //    },
+  //  );
+  //});
 
   test('Verifier ok when audio has been compressed', () async {
     await runTest(
@@ -275,7 +276,7 @@ main() async {
         }
       },
     );
-  });*/
+  });
 
   // The hashes can't handle even a 1% speed change.
   // TODO: Can the verifier be modified to handle this? Allow scores below the

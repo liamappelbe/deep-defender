@@ -18,6 +18,7 @@
 import os
 
 from generator_utils import *
+from math import sqrt
 
 kSampleRate = 16000
 kChunkOverlapFrac = 0.5
@@ -68,14 +69,14 @@ def chunks(data, size, step):
 def buckets(chunkItr, stftSize, stftStride, bitsPerHash):
   k = 2.0 * math.pi / (stftSize - 1.0)
   w = [0.5 - 0.5 * math.cos(i * k) for i in range(stftSize)]
-  for a in chunkItr:
+  for chunk in chunkItr:
     b = []
     i = 0
     while True:
       e = i + stftSize
-      if e > len(a):
+      if e > len(chunk):
         break
-      c = [a[i + j] * w[j] for j in range(stftSize)]
+      c = [chunk[i + j] * w[j] for j in range(stftSize)]
       f = numpy.fft.rfft(c)
       y = []
       j1 = 0
@@ -84,19 +85,42 @@ def buckets(chunkItr, stftSize, stftStride, bitsPerHash):
         j1 = j2
       b.append(y)
       i += stftStride
-    yield b
+    yield chunk, b
+
+def rmsVolume(a):
+  return sqrt(sum((x * x for x in a)) / len(a))
 
 def hashes(bucketItr):
-  for b in bucketItr:
+  for chunk, bucket in bucketItr:
     ydf_ = None
     h = []
-    for y in b:
+    for y in bucket:
       ydf = [y[i] - y[i - 1] for i in range(1, len(y))]
       if ydf_ is not None:
-        h.append(sum([
-            1 << i if ydf[i] - ydf_[i] > 0 else 0 for i in range(len(ydf))]))
+        h.append(sum((
+            1 << i if ydf[i] - ydf_[i] > 0 else 0 for i in range(len(ydf)))))
       ydf_ = ydf
-    yield h
+    yield hashToFingerprint(h, rmsVolume(chunk))
+
+def intToBytes(x, size):
+  a = []
+  for i in range(size):
+    a.append(x % 0x100)
+    x //= 0x100
+  return a
+
+def clamp(x, lo, hi):
+  return lo if x < lo else hi if x > hi else x
+
+def floatToInt(x, size):
+  return int(clamp(x, 0, 1) * ((1 << 32) - 1))
+
+def hashToFingerprint(hashes, volume):
+  f = []
+  f += intToBytes(floatToInt(volume, 4), 4)
+  for h in hashes:
+    f += intToBytes(h, 8)
+  return f
 
 def generate(f):
   def write(s):
@@ -120,7 +144,7 @@ def generate(f):
     write('      %s,' % bitsPerHash)
     write('      [')
     for hh in h:
-      write('      [%s],' % u64BufStr(hh))
+      write('      [%s],' % u8BufStr(hh))
     write('      ],')
     write('    );')
 

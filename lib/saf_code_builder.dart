@@ -26,7 +26,7 @@ class SafCodeBuilder {
   late ByteData _bytes;
   SafCodeBuilder(this._metadata, this._signer) {}
 
-  Uint8List generate(int timeMs, double volume, Uint8List fingerprint) {
+  Uint8List generate(int timeMs, Uint8List fingerprint) {
     // [metadata] [audio fingerprint] [signature]
     // [        signable data       ] [signature]
     if (!init) {
@@ -34,7 +34,7 @@ class SafCodeBuilder {
       _buf = Uint8List(Metadata.length + fingerprint.length + Signer.length);
       _bytes = _buf.buffer.asByteData();
     }
-    _metadata.fill(timeMs, volume, _bytes);
+    _metadata.fill(timeMs, _bytes);
     for (int i = 0; i < fingerprint.length; ++i) {
       _bytes.setUint8(i + Metadata.length, fingerprint[i]);
     }

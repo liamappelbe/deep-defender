@@ -19,10 +19,10 @@ import 'util.dart';
 
 // Generates SAF code metadata.
 class Metadata {
-  static const int length = kMagicString.length + 1 + 1 + 8 + 4;
+  static const int length = kMagicString.length + 1 + 1 + 8;
 
-  void fill(int timeMs, double volume, ByteData metadata) {
-    // [magic string] [version (1)] [algorithm (1)] [time (8)] [volume (4)]
+  void fill(int timeMs, ByteData metadata) {
+    // [magic string] [version (1)] [algorithm (1)] [time (8)]
     // TODO: Use varints for the version and algorithm ID.
     for (int i = 0; i < kMagicString.length; ++i) {
       metadata.setUint8(i, kMagicString.codeUnitAt(i));
@@ -31,10 +31,5 @@ class Metadata {
     metadata.setUint8(kMagicString.length, kVersion);
     metadata.setUint8(kMagicString.length + 1, kAlgorithmId);
     metadata.setUint64(kMagicString.length + 2, timeMs, Endian.big);
-    metadata.setUint32(kMagicString.length + 10, volToU32(volume), Endian.big);
   }
-
-  static const int U32MAX = (1 << 32) - 1;
-  static int volToU32(double volume) => (clamp(volume, 0, 1) * U32MAX).toInt();
-  static double u32ToVol(int u32) => u32.toDouble() / U32MAX;
 }

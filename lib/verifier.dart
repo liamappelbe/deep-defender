@@ -133,7 +133,7 @@ class SafCodeVerifier {
     // Update the timing estimator.
     _timingEstimator.setTime(audioTimeSec, header.timeMs);
 
-    if (searchResult.score < hashCheck.minAllowedScore(header.volume)) {
+    if (searchResult.score < hashCheck.minAllowedScore()) {
       return VerifierResult(safCode, VerifierStatus.hashError, searchResult.score, header);
     }
     final matchedAudio = hashCheck.getAudioSlice(searchResult.t)!;
@@ -217,7 +217,8 @@ class SearchResult {
 }
 
 class _HashCheck {
-  double minAllowedScore(double volume) => min(0.45 + 10 * volume, 0.8);
+  static const double _minAllowedScore = 0.8;
+  double minAllowedScore() => _minAllowedScore;
 
   Uint8List _target;
   Float64List _possibleChunk;
@@ -225,15 +226,21 @@ class _HashCheck {
 
   _HashCheck(this._target, this._possibleChunk, this._chunkStartTimeSec);
 
+  static double _adjustScore(double score, double thresh) =>
+      1.0 - pow(1 - score, log(1 - _minAllowedScore) / log(1 - thresh));
+  static double _volToThresh(double volume) => min(0.35 + 10 * volume, 0.8);
+  static double _adjustScoreByVol(double score, double volume) =>
+      _adjustScore(score, _volToThresh(volume));
+
   double call(double t) {
     // Run the Pipeline and check the hash. Return a score based on how close
     // the match is.
     // TODO: Avoid rebuilding this every time. It's pretty inefficient, but atm
     // we don't have a mechanism to reset it, and the chunker is stateful.
     Uint8List? hashes;
-    void onHashes(int t, Float64List a, Uint64List h) {
+    void onHashes(int t, Float64List a, Uint8List h) {
       assert(hashes == null);
-      hashes = Uint8List.sublistView(h);
+      hashes = h;
     }
 
     final pipeline = Pipeline(
@@ -258,11 +265,14 @@ class _HashCheck {
   static double _calculateScore(Uint8List a, Uint8List b) {
     //if (a.length != b.length) return -1;
     assert(a.length == b.length);
+    final volume = Hasher.u32ToVol(ByteData.sublistView(a).getUint32(0, Endian.little));
     int sum = 0;
-    for (int i = 0; i < a.length; ++i) {
+    for (int i = 4; i < a.length; ++i) {
       sum += _bitCountUint8(0xFF & ~(a[i] ^ b[i]));
     }
-    return sum / (8.0 * a.length);
+    final score = sum / (8.0 * a.length);
+    //print("ZZZZ: $score   ${Uint32List.view(a.buffer, a.length - 4).first} $volume     ${_adjustScoreByVol(score, volume)}");
+    return _adjustScoreByVol(score, volume);
   }
 
   static int _bitCountUint8(int x) {
@@ -285,9 +295,8 @@ class SafCodeHeader {
   final int version;
   final int algorithm;
   final int timeMs;
-  final double volume;
 
-  SafCodeHeader(this.version, this.algorithm, this.timeMs, this.volume);
+  SafCodeHeader(this.version, this.algorithm, this.timeMs);
 
   static const int length = Metadata.length;
 
@@ -304,9 +313,7 @@ class SafCodeHeader {
     final version = bytes.getUint8(kMagicString.length);
     final algorithm = bytes.getUint8(kMagicString.length + 1);
     final timeMs = bytes.getUint64(kMagicString.length + 2, Endian.big);
-    final volume = Metadata.u32ToVol(
-        bytes.getUint32(kMagicString.length + 10, Endian.big));
-    return SafCodeHeader(version, algorithm, timeMs, volume);
+    return SafCodeHeader(version, algorithm, timeMs);
   }
 }
 

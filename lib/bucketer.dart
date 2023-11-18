@@ -46,13 +46,7 @@ class Bucketer {
 
   void onData(int timeMs, Float64List chunk) {
     int j = 0;
-    _stft.run(chunk, (Float64x2List ch) {
-      //if (_rms(ch) < kMinChunkRms) {
-      //  for (int i = 0; i < ch.length; ++i) {
-      //    ch[i] = Float64x2.zero();
-      //  }
-      //}
-    }, (Float64x2List freq) {
+    _stft.run(chunk, (Float64x2List freq) {
       int k = 0;
       final a = freq.discardConjugates();
       assert(a.length == _itr.last);
@@ -70,7 +64,7 @@ class Bucketer {
   }
 }
 
-// Forked from fftea.STFT to allow tweaking the chunk before it's FFT'd.
+// Forked from fftea.STFT.
 class _STFT {
   final FFT _fft;
   final Float64List? _win;
@@ -89,7 +83,6 @@ class _STFT {
 
   void run(
     List<double> input,
-    Function(Float64x2List) tweakChunk,
     Function(Float64x2List) reportChunk, [
     int chunkStride = 0,
   ]) {
@@ -111,7 +104,6 @@ class _STFT {
           _chunk[j] = Float64x2(input[i + j], 0);
         }
       }
-      tweakChunk(_chunk);
       _win?.inPlaceApplyWindow(_chunk);
       _fft.inPlaceFft(_chunk);
       reportChunk(_chunk);

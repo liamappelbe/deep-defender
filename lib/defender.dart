@@ -116,12 +116,10 @@ class DefenderIsolate {
     }
   }
 
-  void _onHashes(int timeMs, Float64List audio, Uint64List hashes) {
+  void _onHashes(int timeMs, Float64List audio, Uint8List fingerprint) {
     if (_codeBuilder == null) return;
 
-    final volume = rmsVolume(audio);
-    final safCode = _codeBuilder!.generate(
-        timeMs, volume, hashes.buffer.asUint8List());
+    final safCode = _codeBuilder!.generate(timeMs, fingerprint);
 
     DebugFile.save(audio, safCode);
 

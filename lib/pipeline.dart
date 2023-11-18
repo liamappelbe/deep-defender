@@ -39,7 +39,7 @@ class Pipeline {
   Float64List? _buffer;
 
   Pipeline(
-    Function(int, Float64List, Uint64List) reportHashes, {
+    Function(int, Float64List, Uint8List) reportHashes, {
     required this.sampleRate,
     required this.chunkSize,
     required this.chunkStride,
