@@ -18,6 +18,8 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:deep_defender/const.dart';
 import 'package:deep_defender/crypto.dart';
+import 'package:deep_defender/hasher.dart';
+import 'package:deep_defender/metadata.dart';
 import 'package:deep_defender/verifier.dart';
 import 'package:wav/wav.dart';
 
@@ -48,8 +50,8 @@ List<TimedSafCode> parseSafCodes(String safCodes) {
   return a;
 }
 
-debugWav(Float64List audio) {
-  Wav([audio], kSampleRate).writeFile('debug.wav');
+debugWav(Float64List audio, [String name = 'debug']) {
+  Wav([audio.sublist(0)], kSampleRate).writeFile('$name.wav');
 }
 
 main(List<String> args) async {
@@ -75,7 +77,13 @@ main(List<String> args) async {
 
   final verifier = SafCodeVerifier(publicKey, (VerifierResult result) {
     print("${result.error}\t${result.score}\t${result.header?.time}");
-    //print("${result.header?.volume},${result.score}");
+    //final volume = Hasher.u32ToVol(
+    //    ByteData.sublistView(result.safCode).getUint32(
+    //        Metadata.length, Endian.big));
+    //print("${volume},${result.score}");
+    //if (result.audio != null) {
+    //  debugWav(result.audio!.matchedAudio, 'chunk ${result.audio!.audioTime}');
+    //}
   });
   await verifier.addAudio(truncatedAudio);
   for (final tsc in safCodes) {

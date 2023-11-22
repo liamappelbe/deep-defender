@@ -139,7 +139,8 @@ class SafCodeVerifier {
     final matchedAudio = hashCheck.getAudioSlice(searchResult.t)!;
     final relativeLatency = audioTimeSec - (est.estAudioTimeSec ?? 0);
     final speed = _timingEstimator.estimateSpeed;
-    final audioMatch = AudioMatch(matchedAudio, relativeLatency, speed);
+    final audioMatch = AudioMatch(
+        matchedAudio, audioTimeSec, relativeLatency, speed);
 
     // Check for speed errors.
     if (speed < _minAllowedSpeed || speed > _maxAllowedSpeed) {
@@ -228,7 +229,7 @@ class _HashCheck {
 
   static double _adjustScore(double score, double thresh) =>
       1.0 - pow(1 - score, log(1 - _minAllowedScore) / log(1 - thresh));
-  static double _volToThresh(double volume) => min(0.35 + 10 * volume, 0.8);
+  static double _volToThresh(double volume) => min(0.4 + 10 * volume, 0.8);
   static double _adjustScoreByVol(double score, double volume) =>
       _adjustScore(score, _volToThresh(volume));
 
@@ -258,20 +259,21 @@ class _HashCheck {
 
     //if (hashes == null) return -1;
     final score = _calculateScore(_target, hashes!);
-    //print('        $t -> $score');
+    //print('$t,$score');
     return score;
   }
 
   static double _calculateScore(Uint8List a, Uint8List b) {
+    // TODO: Verify the volume.
     //if (a.length != b.length) return -1;
     assert(a.length == b.length);
-    final volume = Hasher.u32ToVol(ByteData.sublistView(a).getUint32(0, Endian.little));
+    final volume = Hasher.u32ToVol(
+        ByteData.sublistView(a).getUint32(0, Endian.big));
     int sum = 0;
     for (int i = 4; i < a.length; ++i) {
       sum += _bitCountUint8(0xFF & ~(a[i] ^ b[i]));
     }
     final score = sum / (8.0 * a.length);
-    //print("ZZZZ: $score   ${Uint32List.view(a.buffer, a.length - 4).first} $volume     ${_adjustScoreByVol(score, volume)}");
     return _adjustScoreByVol(score, volume);
   }
 
@@ -309,7 +311,7 @@ class SafCodeHeader {
       if (code[i] != kMagicString.codeUnitAt(i)) return null;
     }
 
-    final bytes = code.buffer.asByteData();
+    final bytes = ByteData.sublistView(code);
     final version = bytes.getUint8(kMagicString.length);
     final algorithm = bytes.getUint8(kMagicString.length + 1);
     final timeMs = bytes.getUint64(kMagicString.length + 2, Endian.big);
@@ -319,9 +321,11 @@ class SafCodeHeader {
 
 class AudioMatch {
   final Float64List matchedAudio;
+  final double audioTime;
   final double relativeLatency;
   final double speed;
-  AudioMatch(this.matchedAudio, this.relativeLatency, this.speed);
+  AudioMatch(
+      this.matchedAudio, this.audioTime, this.relativeLatency, this.speed);
 }
 
 class VerifierResult {
