@@ -28,11 +28,12 @@ class DebugFile {
   static Future<void> save(Float64List audio, Uint8List safCode) async {
     if (!DebugFile._enabled) return;
     ++_debugIndex;
-    final audioCopy = audio.sublist(0);  // Make sure to copy before any awaits.
+    final audioCopy = audio.sublist(0); // Make sure to copy before any awaits.
     final dir = await directory();
     final filename = '${_debugIndex}_${base64Url.encode(safCode)}.wav';
     final path = '$dir/$filename';
-    print("C:/Users/tiusic/AppData/Local/Android/Sdk/platform-tools/adb.exe pull $path $filename");
+    print(
+        "C:/Users/tiusic/AppData/Local/Android/Sdk/platform-tools/adb.exe pull $path $filename");
     await Wav([audioCopy], kSampleRate).writeFile(path);
   }
 
@@ -41,7 +42,8 @@ class DebugFile {
   static Future<String> _directory() async {
     final dir = (await getExternalStorageDirectories(
       type: StorageDirectory.downloads,
-    ))!.first;
+    ))!
+        .first;
     return (await dir.create(recursive: true)).path;
   }
 }

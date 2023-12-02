@@ -79,7 +79,11 @@ Uint64List logLinItr(int end, int steps, {double grad0 = 1}) {
   return a;
 }
 
-double clamp(double x, double lo, double hi) => x < lo ? lo : x > hi ? hi : x;
+double clamp(double x, double lo, double hi) => x < lo
+    ? lo
+    : x > hi
+        ? hi
+        : x;
 
 void micDataToF64(MicData a, Float64List b) {
   assert(b.length == a.length);

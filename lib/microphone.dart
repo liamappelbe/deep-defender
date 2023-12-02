@@ -22,8 +22,7 @@ import 'const.dart';
 import 'util.dart';
 
 class Microphone {
-  static Future<Microphone?> mic(
-      void Function(int, MicData) callback) async {
+  static Future<Microphone?> mic(void Function(int, MicData) callback) async {
     if (!(await Permission.microphone.request()).isGranted) {
       return null;
     }
@@ -35,8 +34,7 @@ class Microphone {
   final void Function(int, MicData) _callback;
   Microphone._(this._callback);
 
-  Future<void> _start() =>
-      _captor.start(
+  Future<void> _start() => _captor.start(
         _onData,
         print,
         sampleRate: kSampleRate,

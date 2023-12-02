@@ -131,24 +131,27 @@ class SafCodeVerifier {
     _timingEstimator.setTime(audioTimeSec, header.timeMs);
 
     if (searchResult.score < hashCheck.minAllowedScore()) {
-      return VerifierResult(safCode, VerifierStatus.hashError, searchResult.score, header);
+      return VerifierResult(
+          safCode, VerifierStatus.hashError, searchResult.score, header);
     }
     final matchedAudio = hashCheck.getAudioSlice(searchResult.t)!;
     final relativeLatency = audioTimeSec - (est.estAudioTimeSec ?? 0);
     final speed = _timingEstimator.estimateSpeed;
-    final audioMatch = AudioMatch(
-        matchedAudio, audioTimeSec, relativeLatency, speed);
+    final audioMatch =
+        AudioMatch(matchedAudio, audioTimeSec, relativeLatency, speed);
 
     // Check for speed errors.
     if (speed < _minAllowedSpeed || speed > _maxAllowedSpeed) {
       //print("Speed error: $speed");
-      return VerifierResult(safCode, VerifierStatus.speedError, searchResult.score, header);
+      return VerifierResult(
+          safCode, VerifierStatus.speedError, searchResult.score, header);
     }
 
     // TODO(#4): Drop data from the audio buffer and update the audio index.
 
     // Report result.
-    return VerifierResult(safCode, VerifierStatus.ok, searchResult.score, header, audioMatch);
+    return VerifierResult(
+        safCode, VerifierStatus.ok, searchResult.score, header, audioMatch);
   }
 
   int get _minAudioCodeSize {
@@ -264,8 +267,8 @@ class _HashCheck {
     // TODO(#8): Verify the volume.
     //if (a.length != b.length) return -1;
     assert(a.length == b.length);
-    final volume = Hasher.u32ToVol(
-        ByteData.sublistView(a).getUint32(0, Endian.big));
+    final volume =
+        Hasher.u32ToVol(ByteData.sublistView(a).getUint32(0, Endian.big));
     int sum = 0;
     for (int i = 4; i < a.length; ++i) {
       sum += _bitCountUint8(0xFF & ~(a[i] ^ b[i]));
@@ -336,7 +339,8 @@ class VerifierResult {
   // Present only if error is ok or speedError
   final AudioMatch? audio;
 
-  VerifierResult(this.safCode, this.error, this.score, [this.header, this.audio]);
+  VerifierResult(this.safCode, this.error, this.score,
+      [this.header, this.audio]);
 
   String toString() => error.toString();
 }
@@ -373,8 +377,7 @@ class _TimingEstimate {
   double? estAudioTimeSec;
   double? targetAudioTimeSec;
   double maxAudioTimeSec;
-  _TimingEstimate(
-      this.minAudioTimeSec, this.estAudioTimeSec,
+  _TimingEstimate(this.minAudioTimeSec, this.estAudioTimeSec,
       this.targetAudioTimeSec, this.maxAudioTimeSec);
   String toString() => '{$minAudioTimeSec, $estAudioTimeSec, $maxAudioTimeSec}';
 }

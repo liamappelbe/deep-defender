@@ -1,4 +1,8 @@
 # Deep Defender
+
+[![Build Status](https://github.com/liamappelbe/deep-defender/workflows/CI/badge.svg)](https://github.com/liamappelbe/deep-defender/actions?query=workflow%3ACI+branch%3Amain)
+[![Coverage Status](https://coveralls.io/repos/github/liamappelbe/deep-defender/badge.svg?branch=main)](https://coveralls.io/github/liamappelbe/deep-defender?branch=main)
+
 Real-time defense against deep fakes and malicious editing.
 
 This is an experimental proof of concept app. No one should rely on this yet. I
