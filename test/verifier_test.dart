@@ -174,8 +174,9 @@ main() async {
     await runTest(
       tweakAudio: (Float64List audio) {
         final rand = Random();
+        final noiseAmplitude = 0.03 * rmsVolume(audio);
         for (int i = 0; i < audio.length; ++i) {
-          audio[i] += (rand.nextDouble() - 0.5) * 0.01;
+          audio[i] += (rand.nextDouble() - 0.5) * noiseAmplitude;
         }
       },
       verifyResults: (_, List<VerifierResult> results) {
@@ -279,9 +280,7 @@ main() async {
   });
 
   // The hashes can't handle even a 1% speed change.
-  // TODO: Can the verifier be modified to handle this? Allow scores below the
-  // threshold to be used for timing? Maybe even resample the input based on the
-  // speed?
+  // TODO(#11): Can the verifier be modified to handle this?
   /*test('Verifier ok when audio is slightly fast', () async {
     await runTest(
       tweakAudio: (_) async {
@@ -306,35 +305,6 @@ main() async {
         }
       },
     );
-  });
-
-  // The hashes can't handle even a 1% change in pitch.
-  // TODO: Does this matter? This isn't a sort of distortion that really happens
-  // during recording or compression.
-  test('Verifier ok when audio is slightly higher in pitch', () async {
-    await runTest(
-      tweakAudio: (_) async {
-        return (await getTestWav('test/test_slightly_higher.wav')).toMono();
-      },
-      verifyResults: (_, List<VerifierResult> results) {
-        for (final result in results) {
-          expect(result.error, VerifierStatus.ok);
-        }
-      },
-    );
-  });
-
-  test('Verifier ok when audio is slightly lower in pitch', () async {
-    await runTest(
-      tweakAudio: (_) async {
-        return (await getTestWav('test/test_slightly_lower.wav')).toMono();
-      },
-      verifyResults: (_, List<VerifierResult> results) {
-        for (final result in results) {
-          expect(result.error, VerifierStatus.ok);
-        }
-      },
-    );
   });*/
 
   // Tests that should return ok:
@@ -348,8 +318,6 @@ main() async {
   //  ✓ negative time offset
   //  X small speed up
   //  X small slow down
-  //  X small pitch up
-  //  X small pitch down
   //  ✓ compression
   //  - test streaming sematics
 

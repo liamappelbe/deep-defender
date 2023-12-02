@@ -36,8 +36,8 @@ import 'util.dart';
 ///                       \                                       /
 /// Defender isolate:   Chunker -> Bucketer -> Hasher -> SafCodeBuilder
 ///                      `----- aka Pipeline ------'
-// TODO: We have BackgroundIsolateBinaryMessenger now, so move the mic to the
-// defender isolate.
+// TODO(#1): We have BackgroundIsolateBinaryMessenger now, so move the mic to
+// the defender isolate.
 class Defender {
   final void Function(int, QrCode) _setQr;
   final Future<PrivateKey> _privateKey;

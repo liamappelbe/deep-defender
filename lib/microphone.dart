@@ -21,42 +21,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'const.dart';
 import 'util.dart';
 
-// TODO: mic_stream package has a bunch of issues. Try flutter_audio_capture.
-
-// Calls the given callback every time a chunk of data is available from the
-// microphone.
-/*class Microphone {
-  static Future<Microphone?> mic(
-      void Function(int, MicData) callback) async {
-    if (!(await Permission.microphone.request()).isGranted) {
-      return null;
-    }
-
-    final stream = await MicStream.microphone(
-        sampleRate: kSampleRate,
-        channelConfig: ChannelConfig.CHANNEL_IN_MONO,
-        audioFormat: AudioFormat.ENCODING_PCM_16BIT);
-    if (stream == null) {
-      return null;
-    }
-    // TODO: Handle other sample rates and bit depths by manually resampling.
-    assert((await MicStream.sampleRate)?.toInt() == kSampleRate);
-    assert((await MicStream.bitDepth) == 16);
-    return Microphone._(stream, callback);
-  }
-
-  final Stream<Uint8List> _stream;
-  final void Function(int, MicData) _callback;
-  late StreamSubscription<Uint8List> _listener;
-  Microphone._(this._stream, this._callback) {
-    _listener = _stream.listen(_onData);
-  }
-
-  void _onData(Uint8List a) {
-    _callback(DateTime.now().millisecondsSinceEpoch, u8ToMicData(a));
-  }
-}*/
-
 class Microphone {
   static Future<Microphone?> mic(
       void Function(int, MicData) callback) async {
@@ -82,8 +46,6 @@ class Microphone {
       );
 
   void _onData(dynamic a) {
-    // TODO: Handle other sample rates by resampling.
-    //assert(_captor.actualSampleRate == kSampleRate);
     _callback(DateTime.now().millisecondsSinceEpoch, a);
   }
 }

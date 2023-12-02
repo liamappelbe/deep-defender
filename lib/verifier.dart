@@ -25,7 +25,6 @@ import 'crypto.dart';
 import 'metadata.dart';
 import 'pipeline.dart';
 
-// TODO: These depend on the hash algorithm.
 const double _minAllowedSpeed = 0.95;
 const double _maxAllowedSpeed = 2 - _minAllowedSpeed;
 const double _minDetectableSpeed = 0.55; // Just above 0.5.
@@ -44,7 +43,7 @@ class SafCodeVerifier {
   final Verifier _verifier;
   final void Function(VerifierResult) _onResult;
 
-  // TODO(ZXCV): Switch to a queue to buffer only the audio we need.
+  // TODO(#4): Switch to a queue to buffer only the audio we need.
   // int _audioSampleIndex = 0;
   // final _audio = ListQueue<double>();
   final _audio = <double>[];
@@ -57,7 +56,7 @@ class SafCodeVerifier {
   SafCodeVerifier(PublicKey publicKey, this._onResult)
       : _verifier = publicKey.verifier();
 
-  // TODO: If sample rate != _hashSampleRate, use FFT to resample the audio.
+  // TODO(#3): If sample rate != _hashSampleRate, use FFT to resample the audio.
   Future<void> addAudio(Float64List audio) async {
     _audio.addAll(audio);
     await _flush();
@@ -68,11 +67,9 @@ class SafCodeVerifier {
     await _flush();
   }
 
-  // TODO: Add a flush method that pads the audio with zeros and flushes.
-
   Future<void> _flush() async {
     if (_flushing) return;
-    // TODO: This is a hack. Switch to a stream API.
+    // TODO(#5): This is a hack. Switch to a stream API.
     _flushing = true;
     while (_audio.length >= _minAudioCodeSize && _safCodes.length > 0) {
       this._onResult(await _verify(_safCodes.removeFirst()));
@@ -103,8 +100,8 @@ class SafCodeVerifier {
 
     // Check that the hash is in sequence. That is, we didn't get one from the
     // past or the future.
-    // TODO: Should we be checking the timestamp vs the time that the SAF code
-    // appeared in the video?
+    // TODO(#6): Should we be checking the timestamp vs the time that the SAF
+    // code appeared in the video?
     final lastCodeTimeMs = _timingEstimator.lastCodeTimeMs;
     if (lastCodeTimeMs != null) {
       final deltaCodeTimeMs = header.timeMs - lastCodeTimeMs;
@@ -148,7 +145,7 @@ class SafCodeVerifier {
       return VerifierResult(safCode, VerifierStatus.speedError, searchResult.score, header);
     }
 
-    // TODO(ZXCV): Drop data from the audio buffer and update the audio index.
+    // TODO(#4): Drop data from the audio buffer and update the audio index.
 
     // Report result.
     return VerifierResult(safCode, VerifierStatus.ok, searchResult.score, header, audioMatch);
@@ -159,7 +156,7 @@ class SafCodeVerifier {
   }
 
   Float64List _audioSlice(double t0, double t1) {
-    final i0 = (t0 * _hashSampleRate).round(); // TODO(ZXCV): _audioSampleIndex
+    final i0 = (t0 * _hashSampleRate).round(); // TODO(#4): _audioSampleIndex
     final i1 = (t1 * _hashSampleRate).round();
     final slice = Float64List(i1 - i0);
     for (int i = i0; i < i1; ++i) {
@@ -236,8 +233,8 @@ class _HashCheck {
   double call(double t) {
     // Run the Pipeline and check the hash. Return a score based on how close
     // the match is.
-    // TODO: Avoid rebuilding this every time. It's pretty inefficient, but atm
-    // we don't have a mechanism to reset it, and the chunker is stateful.
+    // TODO(#7): Avoid rebuilding this every time. It's pretty inefficient, but
+    // atm we don't have a mechanism to reset it, and the chunker is stateful.
     Uint8List? hashes;
     void onHashes(int t, Float64List a, Uint8List h) {
       assert(hashes == null);
@@ -264,7 +261,7 @@ class _HashCheck {
   }
 
   static double _calculateScore(Uint8List a, Uint8List b) {
-    // TODO: Verify the volume.
+    // TODO(#8): Verify the volume.
     //if (a.length != b.length) return -1;
     assert(a.length == b.length);
     final volume = Hasher.u32ToVol(
@@ -293,7 +290,7 @@ class _HashCheck {
 }
 
 class SafCodeHeader {
-  // TODO: Merge this with the Metadata class.
+  // TODO(#9): Merge this with the Metadata class.
   final int version;
   final int algorithm;
   final int timeMs;
@@ -362,7 +359,6 @@ enum VerifierStatus {
 
   // The hash was out of sequence. Check VerifierResult.header.time. May
   // indicate a valid edit point.
-  // TODO: Should we check the audio hash anyway?
   sequenceError,
 
   // The hash doesn't match the audio, or is malformed.

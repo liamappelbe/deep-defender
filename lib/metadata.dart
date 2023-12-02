@@ -23,7 +23,7 @@ class Metadata {
 
   void fill(int timeMs, ByteData metadata) {
     // [magic string] [version (1)] [algorithm (1)] [time (8)]
-    // TODO: Use varints for the version and algorithm ID.
+    // TODO(#2): Use varints for the version and algorithm ID.
     for (int i = 0; i < kMagicString.length; ++i) {
       metadata.setUint8(i, kMagicString.codeUnitAt(i));
     }
