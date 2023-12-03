@@ -48,7 +48,7 @@ https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=7615c9e0df48b1353
 and the RMS volume of the chunk, totalling 100 bytes.
 
 For more details, check out the [blog post](
-https://medium.com/@liamappelbe/saf-codes-fighting-deep-fakes-with-crypto-2b93d41dc7be).
+https://liamappelbe.medium.com/saf-codes-fighting-deep-fakes-with-crypto-2b93d41dc7be).
 
 ## Building
 
