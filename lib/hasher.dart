@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
-import 'package:fftea/fftea.dart';
-
-import 'const.dart';
-import 'util.dart';
+import "util.dart";
 
 // Receives a stream frequency buckets. Yields a stream of hashes.
 //
@@ -33,7 +30,7 @@ class Hasher {
   late final Uint32List _volume;
   late final Uint64List _hashes;
 
-  final Float64List _prevPow_dF;
+  final Float64List _prevPowDF;
   final Function(int, Float64List, Uint8List) _reportFingerprint;
 
   static const kReset = -1;
@@ -43,7 +40,7 @@ class Hasher {
 
   Hasher(int bitsPerHash, int hashesPerChunk, this._reportFingerprint)
       : _size = 8 * hashesPerChunk + 4,
-        _prevPow_dF = Float64List(bitsPerHash) {
+        _prevPowDF = Float64List(bitsPerHash) {
     // We want the _hashes array to be 8-byte aligned, even to the volume prefix
     // is 4 bytes. So allocate an array with an additional 4 byte prefix.
     final bufSize = _size + 4;
@@ -54,16 +51,16 @@ class Hasher {
   }
 
   void onData(Float64List powers) {
-    assert(powers.length == _prevPow_dF.length + 1);
+    assert(powers.length == _prevPowDF.length + 1);
     int h = 0;
-    for (int i = 0; i < _prevPow_dF.length; ++i) {
-      final pow_dF = powers[i + 1] - powers[i];
+    for (int i = 0; i < _prevPowDF.length; ++i) {
+      final powDF = powers[i + 1] - powers[i];
       if (_k >= 0) {
-        if (pow_dF - _prevPow_dF[i] > 0) {
+        if (powDF - _prevPowDF[i] > 0) {
           h |= 1 << i;
         }
       }
-      _prevPow_dF[i] = pow_dF;
+      _prevPowDF[i] = powDF;
     }
     if (_k >= 0) {
       _hashes[_k] = h;
@@ -78,7 +75,7 @@ class Hasher {
     _k = kReset;
   }
 
-  static const int U32MAX = (1 << 32) - 1;
-  static int volToU32(double volume) => (clamp(volume, 0, 1) * U32MAX).toInt();
-  static double u32ToVol(int u32) => u32.toDouble() / U32MAX;
+  static const int u32Max = (1 << 32) - 1;
+  static int volToU32(double volume) => (clamp(volume, 0, 1) * u32Max).toInt();
+  static double u32ToVol(int u32) => u32.toDouble() / u32Max;
 }

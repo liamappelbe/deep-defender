@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:math' as math;
-import 'dart:typed_data';
+import "dart:math" as math;
+import "dart:typed_data";
 
-import 'const.dart';
+import "const.dart";
 
 // Returns x such that f(X) = y and abs(X - x) < dx
 // That is, the solution of f(x) = y, to an accuracy of dx. Assumes f is:
@@ -98,4 +98,35 @@ double rmsVolume(Float64List a) {
     sum += x * x;
   }
   return math.sqrt(sum / a.length);
+}
+
+// Copied from package:pointycastle/src/utils.dart.
+final _byteMask = BigInt.from(0xff);
+final _negativeFlag = BigInt.from(0x80);
+Uint8List encodeBigInt(BigInt number) {
+  if (number == BigInt.zero) {
+    return Uint8List.fromList([0]);
+  }
+
+  int needsPaddingByte;
+  int rawSize;
+
+  if (number > BigInt.zero) {
+    rawSize = (number.bitLength + 7) >> 3;
+    needsPaddingByte =
+        ((number >> (rawSize - 1) * 8) & _negativeFlag) == _negativeFlag
+            ? 1
+            : 0;
+  } else {
+    needsPaddingByte = 0;
+    rawSize = (number.bitLength + 8) >> 3;
+  }
+
+  final size = rawSize + needsPaddingByte;
+  var result = Uint8List(size);
+  for (var i = 0; i < rawSize; i++) {
+    result[size - i - 1] = (number & _byteMask).toInt();
+    number = number >> 8;
+  }
+  return result;
 }

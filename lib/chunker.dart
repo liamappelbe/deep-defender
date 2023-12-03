@@ -19,7 +19,7 @@
 // As soon as the chunk callback is finished, the data buffer that was sent will
 // be overwritten, so the callback should copy any data it needs.
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
 class Chunker {
   final double _sampleRateMs;

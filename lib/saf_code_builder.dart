@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
-import 'crypto.dart';
-import 'metadata.dart';
+import "crypto.dart";
+import "metadata.dart";
 
 // Combines the audio fingerprint, signature, and metadata into a SAF code.
 class SafCodeBuilder {
@@ -24,7 +24,7 @@ class SafCodeBuilder {
   bool init = false;
   late Uint8List _buf;
   late ByteData _bytes;
-  SafCodeBuilder(this._metadata, this._signer) {}
+  SafCodeBuilder(this._metadata, this._signer);
 
   Uint8List generate(int timeMs, Uint8List fingerprint) {
     // [metadata] [audio fingerprint] [signature]

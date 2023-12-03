@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:typed_data';
-import 'package:test/test.dart';
-import 'package:deep_defender/hasher.dart';
+import "dart:typed_data";
+import "package:test/test.dart";
+import "package:deep_defender/hasher.dart";
 
 main() {
-  test('Hasher', () {
+  test("Hasher", () {
     final hasher = Hasher(8, 4, (timeMs, chunk, hashes) {
       expect(timeMs, 1234);
       expect(hashes.length, 36);

@@ -12,25 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:async';
-import 'dart:math';
-import 'dart:typed_data';
-import 'package:deep_defender/const.dart';
-import 'package:deep_defender/crypto.dart';
-import 'package:deep_defender/metadata.dart';
-import 'package:deep_defender/pipeline.dart';
-import 'package:deep_defender/saf_code_builder.dart';
-import 'package:deep_defender/util.dart';
-import 'package:deep_defender/verifier.dart';
-import 'package:test/test.dart';
-import 'package:wav/wav.dart';
+import "dart:async";
+import "dart:math";
+import "dart:typed_data";
+import "package:deep_defender/const.dart";
+import "package:deep_defender/crypto.dart";
+import "package:deep_defender/metadata.dart";
+import "package:deep_defender/pipeline.dart";
+import "package:deep_defender/saf_code_builder.dart";
+import "package:deep_defender/util.dart";
+import "package:deep_defender/verifier.dart";
+import "package:test/test.dart";
+import "package:wav/wav.dart";
 
 const kTestKey =
     '{"kty":"EC","alg":"ES256","use":"sig","crv":"P-256","x":"AJXCXc4kQBQm'
     'bMLi2MpwrklFJtQC01LYCwwF-cdodv_z","y":"cyV700E19jQVyGf9S0vdsfpjj-hkhx'
     'OhVMlzkB-9AJc=","d":"AK86ItzaEXq05gA5LhLSnAmP6aPLrSotlSqq67TvgvIx"}';
 
-Future<Wav> getTestWav([String filename = 'test/test.wav']) async =>
+Future<Wav> getTestWav([String filename = "test/test.wav"]) async =>
     await Wav.readFile(filename);
 
 class TimedFingerprint {
@@ -93,18 +93,20 @@ runTest({
   final audio = (await tweakAudio?.call(rawaudio)) ?? rawaudio;
   //debugWav(audio);
   await verifier.addAudio(audio);
-  for (final code in allSafCodes) await verifier.addSafCode(code);
+  for (final code in allSafCodes) {
+    await verifier.addSafCode(code);
+  }
 
   expect(results.length, allSafCodes.length);
   verifyResults?.call(wav, results);
 }
 
 debugWav(Float64List audio) {
-  Wav([audio], kSampleRate).writeFile('debug.wav');
+  Wav([audio], kSampleRate).writeFile("debug.wav");
 }
 
 main() async {
-  test('Verifier ok when no change', () async {
+  test("Verifier ok when no change", () async {
     await runTest(
       verifyResults: (Wav wav, List<VerifierResult> results) {
         final audioLenMs = (wav.duration * 1000).toInt();
@@ -121,12 +123,13 @@ main() async {
     );
   });
 
-  test('Verifier ok when volume decreases', () async {
+  test("Verifier ok when volume decreases", () async {
     await runTest(
       tweakAudio: (Float64List audio) {
         for (int i = 0; i < audio.length; ++i) {
           audio[i] *= 0.1;
         }
+        return audio;
       },
       verifyResults: (_, List<VerifierResult> results) {
         for (final result in results) {
@@ -136,12 +139,13 @@ main() async {
     );
   });
 
-  test('Verifier ok when volume increases', () async {
+  test("Verifier ok when volume increases", () async {
     await runTest(
       tweakAudio: (Float64List audio) {
         for (int i = 0; i < audio.length; ++i) {
           audio[i] *= 10;
         }
+        return audio;
       },
       verifyResults: (_, List<VerifierResult> results) {
         for (final result in results) {
@@ -151,7 +155,7 @@ main() async {
     );
   });
 
-  test('Verifier ok when volume increases and clips', () async {
+  test("Verifier ok when volume increases and clips", () async {
     await runTest(
       tweakAudio: (Float64List audio) {
         for (int i = 0; i < audio.length; ++i) {
@@ -161,6 +165,7 @@ main() async {
           if (audio[i] < -1) audio[i] = -1;
           if (audio[i] > 1) audio[i] = 1;
         }
+        return audio;
       },
       verifyResults: (_, List<VerifierResult> results) {
         for (final result in results) {
@@ -170,7 +175,7 @@ main() async {
     );
   });
 
-  test('Verifier ok when some noise', () async {
+  test("Verifier ok when some noise", () async {
     await runTest(
       tweakAudio: (Float64List audio) {
         final rand = Random();
@@ -178,6 +183,7 @@ main() async {
         for (int i = 0; i < audio.length; ++i) {
           audio[i] += (rand.nextDouble() - 0.5) * noiseAmplitude;
         }
+        return audio;
       },
       verifyResults: (_, List<VerifierResult> results) {
         for (final result in results) {
@@ -187,7 +193,7 @@ main() async {
     );
   });
 
-  test('Verifier ok when low pass filtered', () async {
+  test("Verifier ok when low pass filtered", () async {
     await runTest(
       tweakAudio: (Float64List audio) {
         double x = 0;
@@ -195,6 +201,7 @@ main() async {
           x += 0.1 * (audio[i] - x);
           audio[i] = 2 * x;
         }
+        return audio;
       },
       verifyResults: (_, List<VerifierResult> results) {
         for (final result in results) {
@@ -204,7 +211,7 @@ main() async {
     );
   });
 
-  test('Verifier ok when high pass filtered', () async {
+  test("Verifier ok when high pass filtered", () async {
     await runTest(
       tweakAudio: (Float64List audio) {
         final out = Float64List(audio.length);
@@ -224,7 +231,7 @@ main() async {
     );
   });
 
-  test('Verifier ok when audio is delayed', () async {
+  test("Verifier ok when audio is delayed", () async {
     await runTest(
       tweakAudio: (Float64List audio) {
         final offset = (kSampleRate * 0.8).toInt();
@@ -265,11 +272,11 @@ main() async {
   //  );
   //});
 
-  test('Verifier ok when audio has been compressed', () async {
+  test("Verifier ok when audio has been compressed", () async {
     await runTest(
       // test_compressed.wav was created by converting to a 32kbps MP3 and back.
       tweakAudio: (_) async {
-        return (await getTestWav('test/test_compressed.wav')).toMono();
+        return (await getTestWav("test/test_compressed.wav")).toMono();
       },
       verifyResults: (_, List<VerifierResult> results) {
         for (final result in results) {

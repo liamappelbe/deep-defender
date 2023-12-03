@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:path_provider/path_provider.dart';
-import 'package:wav/wav.dart';
-import 'const.dart';
+import "dart:convert";
+import "dart:typed_data";
+import "package:logging/logging.dart";
+import "package:path_provider/path_provider.dart";
+import "package:wav/wav.dart";
+import "const.dart";
+
+final _log = Logger("debug_file");
 
 // Saves an audio chunks as wav file, with its SAF code as the filename. This is
 // just for debugging.
@@ -30,10 +32,11 @@ class DebugFile {
     ++_debugIndex;
     final audioCopy = audio.sublist(0); // Make sure to copy before any awaits.
     final dir = await directory();
-    final filename = '${_debugIndex}_${base64Url.encode(safCode)}.wav';
-    final path = '$dir/$filename';
-    print(
-        "C:/Users/tiusic/AppData/Local/Android/Sdk/platform-tools/adb.exe pull $path $filename");
+    final filename = "${_debugIndex}_${base64Url.encode(safCode)}.wav";
+    final path = "$dir/$filename";
+    _log.info(
+        "C:/Users/tiusic/AppData/Local/Android/Sdk/platform-tools/adb.exe pull "
+        "$path $filename");
     await Wav([audioCopy], kSampleRate).writeFile(path);
   }
 

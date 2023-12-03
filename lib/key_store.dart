@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:convert';
+import "package:flutter/foundation.dart";
+import "package:shared_preferences/shared_preferences.dart";
 
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'crypto.dart';
+import "crypto.dart";
 
 /// Provides an RSA public/private key pair.
 ///

@@ -39,8 +39,11 @@ dependencies:
   wav: ^1.3.0
   pem: ^2.0.4
   path_provider: ^2.1.0
+  logging: ^1.2.0
+  qr: ^3.0.1
 
 dev_dependencies:
+  flutter_lints: ^3.0.1
   flutter_test:
     sdk: flutter
 

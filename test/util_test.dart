@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:test/test.dart';
-import 'package:deep_defender/util.dart';
+import "package:test/test.dart";
+import "package:deep_defender/util.dart";
 
 main() {
-  test('logItr', () {
+  test("logItr", () {
     expect(logItr(100, 1), [100]);
     expect(logItr(100, 3), [4, 21, 100]);
     expect(logItr(100, 10), [1, 2, 3, 6, 10, 15, 25, 39, 63, 100]);
   });
 
-  test('solve', () {
+  test("solve", () {
     double cube(double x) => x * x * x;
     expect(solve(cube, y: 0.5, dx: 1e-3), closeTo(0.7937, 1e-3));
     expect(solve(cube, y: 1000, dx: 1e-3), closeTo(10, 1e-3));

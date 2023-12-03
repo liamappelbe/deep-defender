@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:typed_data';
-import 'package:test/test.dart';
-import 'package:deep_defender/chunker.dart';
+import "dart:typed_data";
+import "package:test/test.dart";
+import "package:deep_defender/chunker.dart";
 
 Float64List makeList(int from, int to) {
   final a = <double>[];
@@ -25,7 +25,7 @@ Float64List makeList(int from, int to) {
 }
 
 main() {
-  test('Chunker', () {
+  test("Chunker", () {
     // 0ms               30ms                60ms
     // [0  1  2  3  4  5  6  7]
     //                   [6  7  8  9  10  11  12  13]

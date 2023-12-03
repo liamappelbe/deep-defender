@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
-import 'dart:typed_data';
-import 'package:deep_defender/const.dart';
-import 'package:deep_defender/crypto.dart';
-import 'package:deep_defender/hasher.dart';
-import 'package:deep_defender/metadata.dart';
-import 'package:deep_defender/verifier.dart';
-import 'package:wav/wav.dart';
+import "dart:convert";
+import "dart:io";
+import "dart:math";
+import "dart:typed_data";
+import "package:logging/logging.dart";
+import "package:deep_defender/const.dart";
+import "package:deep_defender/crypto.dart";
+import "package:deep_defender/verifier.dart";
+import "package:wav/wav.dart";
+
+final _log = Logger("run_verifier");
 
 class TimedSafCode {
   int timeMs;
@@ -41,7 +42,7 @@ TimedSafCode? parseSafCode(String line) {
 
 List<TimedSafCode> parseSafCodes(String safCodes) {
   final a = <TimedSafCode>[];
-  for (final line in safCodes.split('\n')) {
+  for (final line in safCodes.split("\n")) {
     final saf = parseSafCode(line.trim());
     if (saf != null) {
       a.add(saf);
@@ -50,24 +51,25 @@ List<TimedSafCode> parseSafCodes(String safCodes) {
   return a;
 }
 
-debugWav(Float64List audio, [String name = 'debug']) {
-  Wav([audio.sublist(0)], kSampleRate).writeFile('$name.wav');
+debugWav(Float64List audio, [String name = "debug"]) {
+  Wav([audio.sublist(0)], kSampleRate).writeFile("$name.wav");
 }
 
 main(List<String> args) async {
   if (args.length != 3) {
-    print('Wrong number of args. Usage:');
-    print('  dart run run_verifier.dart input.wav safCodes.txt key.json');
+    _log.severe("Wrong number of args. Usage:");
+    _log.severe("  dart run run_verifier.dart input.wav safCodes.txt key.json");
     return;
   }
 
   final wav = await Wav.readFile(args[0]);
   assert(wav.samplesPerSecond == kSampleRate);
   final audio = wav.toMono();
-  print('Wav is ${(audio.length / kSampleRate).toStringAsFixed(2)} sec long');
+  _log.info(
+      "Wav is ${(audio.length / kSampleRate).toStringAsFixed(2)} sec long");
 
   final safCodes = parseSafCodes(await File(args[1]).readAsString());
-  print('Loaded ${safCodes.length} SAF codes');
+  _log.info("Loaded ${safCodes.length} SAF codes");
   final firstCodeTimeSec = safCodes[0].timeMs / 1000.0;
   final audioStartTimeSec = max(0, firstCodeTimeSec - 2);
   final audioStartSample = (audioStartTimeSec * kSampleRate).toInt();
@@ -76,11 +78,11 @@ main(List<String> args) async {
   final publicKey = PublicKey.fromJwk(await File(args[2]).readAsString());
 
   final verifier = SafCodeVerifier(publicKey, (VerifierResult result) {
-    print("${result.error}\t${result.score}\t${result.header?.time}");
+    _log.info("${result.error}\t${result.score}\t${result.header?.time}");
     //final volume = Hasher.u32ToVol(
     //    ByteData.sublistView(result.safCode).getUint32(
     //        Metadata.length, Endian.big));
-    //print("${volume},${result.score}");
+    //_log.info("${volume},${result.score}");
     //if (result.audio != null) {
     //  debugWav(result.audio!.matchedAudio, 'chunk ${result.audio!.audioTime}');
     //}
@@ -89,5 +91,5 @@ main(List<String> args) async {
   for (final tsc in safCodes) {
     await verifier.addSafCode(tsc.safCode);
   }
-  print('Done');
+  _log.info("Done");
 }

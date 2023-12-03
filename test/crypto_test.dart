@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:convert';
-import 'dart:typed_data';
-import 'package:deep_defender/crypto.dart';
-import 'package:deep_defender/key_store.dart';
-import 'package:test/test.dart';
+import "dart:convert";
+import "dart:typed_data";
+import "package:deep_defender/crypto.dart";
+import "package:test/test.dart";
 
 const kTestKey =
     '{"kty":"EC","alg":"ES256","use":"sig","crv":"P-256","x":"AJXCXc4kQBQm'
@@ -24,7 +23,7 @@ const kTestKey =
     'OhVMlzkB-9AJc=","d":"AK86ItzaEXq05gA5LhLSnAmP6aPLrSotlSqq67TvgvIx"}';
 
 main() {
-  test('Byte signer produces correct signature', () {
+  test("Byte signer produces correct signature", () {
     final keyPair = KeyPair.fromJwk(kTestKey);
     final signer = keyPair.privateKey.signer();
     final input = utf8.encode("Hello World!");
@@ -39,7 +38,7 @@ main() {
     expect(keyPair.publicKey.verifier().verifyInline(bytes), isTrue);
   });
 
-  test('JWK', () {
+  test("JWK", () {
     final keyPair = KeyPair.fromJwk(kTestKey);
     expect(keyPair.toJwk(includePrivateKey: true), kTestKey);
     expect(

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
 const String kMagicString = "SAF";
 const int kVersion = 1;

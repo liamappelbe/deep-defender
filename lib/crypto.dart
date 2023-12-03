@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:convert';
-import 'dart:typed_data';
+import "dart:convert";
+import "dart:typed_data";
 
-import 'package:crypto_keys/crypto_keys.dart' as ck;
-import 'package:pointycastle/src/utils.dart' show encodeBigInt, decodeBigInt;
+import "package:crypto_keys/crypto_keys.dart" as ck;
+
+import "util.dart";
 
 /// Wrapper around crypto_keys to abstract away the details. For example, we
 /// should be able to switch the crypto algorithm without changing the rest of
@@ -107,7 +108,7 @@ class KeyPair {
     final x = _bigIntToBase64(publicKey._key.xCoordinate);
     final y = _bigIntToBase64(publicKey._key.yCoordinate);
     final pub = '"x":"$x","y":"$y"';
-    String priv = '';
+    String priv = "";
     if (includePrivateKey) {
       final d = _bigIntToBase64(privateKey._key.eccPrivateKey);
       priv = ',"d":"$d"';

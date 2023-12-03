@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
-import 'package:fftea/fftea.dart';
-
-import 'bucketer.dart';
-import 'chunker.dart';
-import 'const.dart';
-import 'hasher.dart';
-import 'util.dart';
+import "bucketer.dart";
+import "chunker.dart";
+import "const.dart";
+import "hasher.dart";
+import "util.dart";
 
 /// Chains together Chunker -> Bucketer -> Hasher, for use in the app, and for
 /// integration testing.

@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
-import 'const.dart';
-import 'util.dart';
+import "const.dart";
 
 // Generates SAF code metadata.
 class Metadata {

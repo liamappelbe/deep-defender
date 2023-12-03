@@ -12,21 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:isolate';
-import 'dart:typed_data';
+import "dart:isolate";
+import "dart:typed_data";
 
-import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:qr/qr.dart';
+import "package:flutter/services.dart";
+import "package:qr/qr.dart";
 
-import 'const.dart';
-import 'crypto.dart';
-import 'debug_file.dart';
-import 'metadata.dart';
-import 'microphone.dart';
-import 'pipeline.dart';
-import 'saf_code_builder.dart';
-import 'util.dart';
+import "const.dart";
+import "crypto.dart";
+import "debug_file.dart";
+import "metadata.dart";
+import "microphone.dart";
+import "pipeline.dart";
+import "saf_code_builder.dart";
 
 /// Connects a Microphone to a SafCodeBuilder etc running in a separate Isolate.
 ///
@@ -42,20 +40,18 @@ class Defender {
   final void Function(int, QrCode) _setQr;
   final Future<PrivateKey> _privateKey;
   final _recv = ReceivePort();
-  late final Future<Microphone?> _microphone;
-  late final Future<Isolate> _isolate;
   SendPort? _send;
 
   Defender(this._setQr, this._privateKey) {
     _recv.listen(_onMessage);
     final rootToken = RootIsolateToken.instance!;
-    _isolate = Isolate.spawn(defenderIsolateMain, [_recv.sendPort, rootToken]);
-    _microphone = Microphone.mic(_updateCode);
+    Isolate.spawn(defenderIsolateMain, [_recv.sendPort, rootToken]);
+    Microphone.mic(_updateCode);
   }
 
   void _onMessage(dynamic message) {
     if (message is SendPort) {
-      _send = message as SendPort;
+      _send = message;
       _privateKey.then((pk) => _send?.send(pk));
     } else {
       final qrm = message as QrMessage;
@@ -108,8 +104,7 @@ class DefenderIsolate {
 
   void _onMessage(dynamic message) {
     if (message is PrivateKey) {
-      _codeBuilder =
-          SafCodeBuilder(Metadata(), (message as PrivateKey).signer());
+      _codeBuilder = SafCodeBuilder(Metadata(), (message).signer());
     } else {
       final am = message as AudioMessage;
       _pipeline.onData(am.timeMs, am.audio);

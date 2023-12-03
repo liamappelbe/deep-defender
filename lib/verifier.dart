@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:collection';
-import 'dart:math';
-import 'dart:typed_data';
-import 'package:wav/util.dart';
+import "dart:collection";
+import "dart:math";
+import "dart:typed_data";
 
-import 'bucketer.dart';
-import 'hasher.dart';
+import "hasher.dart";
 
-import 'const.dart';
-import 'crypto.dart';
-import 'metadata.dart';
-import 'pipeline.dart';
+import "const.dart";
+import "crypto.dart";
+import "metadata.dart";
+import "pipeline.dart";
 
 const double _minAllowedSpeed = 0.95;
 const double _maxAllowedSpeed = 2 - _minAllowedSpeed;
@@ -71,8 +69,8 @@ class SafCodeVerifier {
     if (_flushing) return;
     // TODO(#5): This is a hack. Switch to a stream API.
     _flushing = true;
-    while (_audio.length >= _minAudioCodeSize && _safCodes.length > 0) {
-      this._onResult(await _verify(_safCodes.removeFirst()));
+    while (_audio.length >= _minAudioCodeSize && _safCodes.isNotEmpty) {
+      _onResult(await _verify(_safCodes.removeFirst()));
     }
     _flushing = false;
   }
@@ -221,9 +219,9 @@ class _HashCheck {
   static const double _minAllowedScore = 0.8;
   double minAllowedScore() => _minAllowedScore;
 
-  Uint8List _target;
-  Float64List _possibleChunk;
-  double _chunkStartTimeSec;
+  final Uint8List _target;
+  final Float64List _possibleChunk;
+  final double _chunkStartTimeSec;
 
   _HashCheck(this._target, this._possibleChunk, this._chunkStartTimeSec);
 
@@ -342,6 +340,7 @@ class VerifierResult {
   VerifierResult(this.safCode, this.error, this.score,
       [this.header, this.audio]);
 
+  @override
   String toString() => error.toString();
 }
 
@@ -379,7 +378,9 @@ class _TimingEstimate {
   double maxAudioTimeSec;
   _TimingEstimate(this.minAudioTimeSec, this.estAudioTimeSec,
       this.targetAudioTimeSec, this.maxAudioTimeSec);
-  String toString() => '{$minAudioTimeSec, $estAudioTimeSec, $maxAudioTimeSec}';
+
+  @override
+  String toString() => "{$minAudioTimeSec, $estAudioTimeSec, $maxAudioTimeSec}";
 }
 
 class _TimingEstimator {

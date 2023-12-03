@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:math' as math;
-import 'dart:typed_data';
+import "dart:typed_data";
 
-import 'package:fftea/fftea.dart';
+import "package:fftea/fftea.dart";
 
-import 'const.dart';
-import 'util.dart';
+import "util.dart";
 
 // Receives a stream of timestamped audio data, in fixed sized chunks, runs
 // STFT, and calculates power levels of coarser buckets of frequencies.
@@ -45,7 +43,6 @@ class Bucketer {
         _itr = logLinItr(1 + stftSize ~/ 2, buckets, grad0: 3);
 
   void onData(int timeMs, Float64List chunk) {
-    int j = 0;
     _stft.run(chunk, (Float64x2List freq) {
       int k = 0;
       final a = freq.discardConjugates();
@@ -75,8 +72,8 @@ class _STFT {
         _chunk = Float64x2List(chunkSize) {
     if (_win != null && _win!.length != chunkSize) {
       throw ArgumentError(
-        'Window must have the same length as the chunk size.',
-        '_win',
+        "Window must have the same length as the chunk size.",
+        "_win",
       );
     }
   }

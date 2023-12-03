@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
-import 'package:deep_defender/bucketer.dart';
-import 'package:deep_defender/const.dart';
-import 'package:deep_defender/pipeline.dart';
-import 'package:deep_defender/util.dart';
-import 'package:test/test.dart';
-import 'package:wav/wav.dart';
+import "package:deep_defender/bucketer.dart";
+import "package:deep_defender/const.dart";
+import "package:deep_defender/pipeline.dart";
+import "package:test/test.dart";
+import "package:wav/wav.dart";
 
 void expectClose(List<double> out, List<double> exp, [double delta = 1e-6]) {
   expect(out.length, exp.length);
@@ -62,7 +61,7 @@ Future<void> testPipeline(
     int hashStride,
     int bitsPerHash,
     List<List<int>> expectedHashes) async {
-  final wav = await Wav.readFile('test/$filename');
+  final wav = await Wav.readFile("test/$filename");
   final audio = wav.toMono();
   final data = MicData.fromList(audio);
   final actualHashes = <Uint8List>[];

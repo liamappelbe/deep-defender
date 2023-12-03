@@ -15,13 +15,11 @@
 // GENERATED FILE. DO NOT EDIT. Generated with:
 //   python3 test/generate_pipeline_test.py
 
-import 'dart:typed_data';
-import 'package:test/test.dart';
-import 'package:deep_defender/pipeline.dart';
-import 'test_util.dart';
+import "package:test/test.dart";
+import "test_util.dart";
 
 main() {
-  test('Pipeline', () async {
+  test("Pipeline", () async {
     await testPipeline(
       "test.wav",
       28672,

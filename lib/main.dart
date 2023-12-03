@@ -12,51 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import "package:flutter/material.dart";
+import "package:flutter/services.dart";
+import "package:share_plus/share_plus.dart";
+import "package:qr_flutter/qr_flutter.dart";
 
-import 'defender.dart';
-import 'microphone.dart';
-import 'key_store.dart';
+import "defender.dart";
+import "key_store.dart";
 
 void main() {
-  runApp(DeepDefenderApp());
+  runApp(const DeepDefenderApp());
 }
 
 class DeepDefenderApp extends StatelessWidget {
+  const DeepDefenderApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return MaterialApp(
-      title: 'Deep Defender',
+      title: "Deep Defender",
       theme: ThemeData(
         primarySwatch: Colors.deepOrange,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: DefenderPage(title: 'Deep Defender'),
+      home: const DefenderPage(title: "Deep Defender"),
     );
   }
 }
 
+final KeyStore _keyStore = KeyStore();
+
 class DefenderPage extends StatefulWidget {
   final String title;
-  final _keyStore = KeyStore();
-  DefenderPage({Key? key, required this.title}) : super(key: key);
+  const DefenderPage({super.key, required this.title});
 
   @override
-  _DefenderState createState() => _DefenderState(_keyStore);
+  State<DefenderPage> createState() => _DefenderState();
 }
 
 class _DefenderState extends State<DefenderPage> {
-  final KeyStore _keyStore;
-  late final Defender _defender;
   QrCode? _qr;
   String _text = "Waiting to hear from the microphone...";
-  _DefenderState(this._keyStore) {
-    _defender = Defender(_setQr, _keyStore.privateKey());
+  _DefenderState() {
+    Defender(_setQr, _keyStore.privateKey());
   }
 
   void _setQr(int timeMs, QrCode qr) {
@@ -80,7 +79,7 @@ class _DefenderState extends State<DefenderPage> {
                 <PopupMenuEntry<void Function()>>[
               PopupMenuItem<void Function()>(
                 value: _sharePublicKey,
-                child: Text('Share public key'),
+                child: const Text("Share public key"),
               ),
             ],
           ),
@@ -93,7 +92,7 @@ class _DefenderState extends State<DefenderPage> {
             if (_qr != null)
               QrImageView.withQr(qr: _qr!)
             else
-              AspectRatio(aspectRatio: 1),
+              const AspectRatio(aspectRatio: 1),
             Text(
               _text,
               textAlign: TextAlign.center,

@@ -15,13 +15,11 @@
 // GENERATED FILE. DO NOT EDIT. Generated with:
 //   python3 test/generate_bucketer_test.py
 
-import 'dart:typed_data';
-import 'package:test/test.dart';
-import 'package:deep_defender/bucketer.dart';
-import 'test_util.dart';
+import "package:test/test.dart";
+import "test_util.dart";
 
 main() {
-  test('Bucketer', () {
+  test("Bucketer", () {
     testBucketer(
       128,
       64,

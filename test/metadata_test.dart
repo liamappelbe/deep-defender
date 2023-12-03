@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:math';
-import 'dart:typed_data';
-import 'package:test/test.dart';
-import 'package:deep_defender/metadata.dart';
+import "dart:typed_data";
+import "package:test/test.dart";
+import "package:deep_defender/metadata.dart";
 
 main() {
-  test('Metadata filler matches spec', () {
+  test("Metadata filler matches spec", () {
     final buf = Uint8List(Metadata.length);
     Metadata().fill(0x0123456789ABCDEF, buf.buffer.asByteData());
     expect(

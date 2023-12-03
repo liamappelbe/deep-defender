@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:async';
-import 'dart:typed_data';
+import "dart:async";
 
-import 'package:flutter_audio_capture/flutter_audio_capture.dart';
-import 'package:permission_handler/permission_handler.dart';
+import "package:flutter_audio_capture/flutter_audio_capture.dart";
+import "package:logging/logging.dart";
+import "package:permission_handler/permission_handler.dart";
 
-import 'const.dart';
-import 'util.dart';
+import "const.dart";
+
+final _log = Logger("microphone");
 
 class Microphone {
   static Future<Microphone?> mic(void Function(int, MicData) callback) async {
@@ -36,10 +37,10 @@ class Microphone {
 
   Future<void> _start() => _captor.start(
         _onData,
-        print,
+        _log.severe,
         sampleRate: kSampleRate,
         bufferSize: 2000,
-        firstDataTimeout: Duration(minutes: 1),
+        firstDataTimeout: const Duration(minutes: 1),
         waitForFirstDataOnAndroid: false,
       );
 
